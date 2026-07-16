@@ -12,7 +12,8 @@ interface RelatorioResumoProps {
     | "lavagens"
     | "polimentos"
     | "outros"
-  >;
+  > &
+    Partial<Pick<ResumoDia, "caixaFinal">>;
   showCaixaInicial?: boolean;
   lucroLabel?: string;
 }
@@ -20,8 +21,12 @@ interface RelatorioResumoProps {
 export function RelatorioResumo({
   resumo,
   showCaixaInicial = true,
-  lucroLabel = "Lucro",
+  lucroLabel = "Lucro do dia",
 }: RelatorioResumoProps) {
+  const caixaFinal =
+    resumo.caixaFinal ??
+    resumo.caixaInicial + resumo.totalEntradas - resumo.totalSaidas;
+
   return (
     <div className="space-y-4">
       <div className="space-y-3 rounded-xl bg-zinc-800/50 p-4">
@@ -50,6 +55,12 @@ export function RelatorioResumo({
           <span className="font-semibold text-zinc-300">{lucroLabel}</span>
           <span className="text-lg font-bold text-amber-400">
             {formatCurrency(resumo.lucro)}
+          </span>
+        </div>
+        <div className="flex justify-between text-sm">
+          <span className="text-zinc-400">Caixa final</span>
+          <span className="font-medium text-white">
+            {formatCurrency(caixaFinal)}
           </span>
         </div>
       </div>

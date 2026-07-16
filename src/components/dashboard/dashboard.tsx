@@ -59,7 +59,7 @@ export function Dashboard() {
           caixaInicial,
           totalEntradas: totalE,
           totalSaidas: totalS,
-          lucro: caixaInicial + totalE - totalS,
+          lucro: totalE - totalS,
         });
       } else {
         setEntradas([]);

@@ -66,7 +66,8 @@ export async function calcularResumoDia(diaId: string): Promise<ResumoDia> {
   const totalEntradas = entradas?.reduce((sum, e) => sum + Number(e.valor), 0) ?? 0;
   const totalSaidas = saidas?.reduce((sum, s) => sum + Number(s.valor), 0) ?? 0;
   const caixaInicial = Number(dia.caixa_inicial);
-  const caixaFinal = caixaInicial + totalEntradas - totalSaidas;
+  const lucro = totalEntradas - totalSaidas;
+  const caixaFinal = caixaInicial + lucro;
 
   const lavagens = entradas?.filter((e) => e.tipo === "lavagem").length ?? 0;
   const polimentos = entradas?.filter((e) => e.polimento).length ?? 0;
@@ -77,7 +78,7 @@ export async function calcularResumoDia(diaId: string): Promise<ResumoDia> {
     caixaInicial,
     totalEntradas,
     totalSaidas,
-    lucro: caixaFinal,
+    lucro,
     caixaFinal,
     lavagens,
     polimentos,
