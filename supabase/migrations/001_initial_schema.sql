@@ -41,6 +41,12 @@ CREATE INDEX IF NOT EXISTS idx_dias_data ON dias(data DESC);
 CREATE INDEX IF NOT EXISTS idx_entradas_dia_id ON entradas(dia_id);
 CREATE INDEX IF NOT EXISTS idx_saidas_dia_id ON saidas(dia_id);
 
+-- No máximo um dia aberto por vez
+CREATE UNIQUE INDEX IF NOT EXISTS idx_dias_unico_iniciado
+  ON dias ((status))
+  WHERE status = 'iniciado';
+
+
 -- RLS habilitado (sem autenticação por enquanto - políticas permissivas)
 ALTER TABLE dias ENABLE ROW LEVEL SECURITY;
 ALTER TABLE entradas ENABLE ROW LEVEL SECURITY;

@@ -30,7 +30,13 @@ export async function iniciarDia(caixaInicial: number): Promise<Dia> {
     .select()
     .single();
 
-  if (error) throw error;
+  if (error) {
+    // Índice único: evita 2 dias abertos ao mesmo tempo
+    if (error.code === "23505") {
+      throw new Error("Já existe um dia em aberto.");
+    }
+    throw error;
+  }
   return data;
 }
 

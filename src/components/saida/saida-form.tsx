@@ -57,8 +57,13 @@ export function SaidaForm() {
 
       toast.success("Saída registrada!");
       router.push("/");
-    } catch {
-      toast.error("Erro ao registrar saída.");
+    } catch (err) {
+      const message =
+        err instanceof Error && err.message
+          ? err.message
+          : "Erro ao registrar saída.";
+      console.error("Erro ao registrar saída:", err);
+      toast.error(message);
     } finally {
       setLoading(false);
     }

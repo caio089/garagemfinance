@@ -31,6 +31,31 @@ export function formatDateLong(date: string | Date): string {
   }).format(d);
 }
 
+export function formatLiveClock(date: Date): {
+  data: string;
+  hora: string;
+  weekday: string;
+} {
+  const weekday = new Intl.DateTimeFormat("pt-BR", {
+    weekday: "long",
+  }).format(date);
+
+  const data = new Intl.DateTimeFormat("pt-BR", {
+    day: "2-digit",
+    month: "2-digit",
+    year: "numeric",
+  }).format(date);
+
+  const hora = new Intl.DateTimeFormat("pt-BR", {
+    hour: "2-digit",
+    minute: "2-digit",
+    second: "2-digit",
+    hour12: false,
+  }).format(date);
+
+  return { data, hora, weekday };
+}
+
 export function parseCurrencyInput(value: string): number {
   const cleaned = value.replace(/[^\d,]/g, "").replace(",", ".");
   return parseFloat(cleaned) || 0;
