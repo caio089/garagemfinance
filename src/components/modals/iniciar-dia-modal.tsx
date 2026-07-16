@@ -78,7 +78,7 @@ export function IniciarDiaModal({
                 placeholder="0,00"
                 value={valor}
                 onChange={(e) => setValor(maskCurrencyInput(e.target.value))}
-                className="h-14 w-full rounded-xl border border-zinc-700 bg-zinc-800 pl-12 pr-4 text-2xl font-bold text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+                className="h-14 w-full rounded-xl border border-zinc-700 bg-zinc-800 pl-12 pr-4 text-center text-2xl font-bold text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
               />
             </div>
           </div>

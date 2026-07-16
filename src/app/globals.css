@@ -121,10 +121,20 @@
   * {
     @apply border-border outline-ring/50;
   }
-  body {
-    @apply bg-background text-foreground;
-  }
   html {
     @apply font-sans;
+    -webkit-text-size-adjust: 100%;
+    text-size-adjust: 100%;
+  }
+  body {
+    @apply bg-background text-foreground;
+    overscroll-behavior-y: none;
+    -webkit-tap-highlight-color: transparent;
+  }
+  /* Evita zoom automático do iOS ao focar inputs (exige >= 16px) */
+  input,
+  textarea,
+  select {
+    font-size: 16px !important;
   }
 }

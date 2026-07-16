@@ -21,6 +21,8 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
   themeColor: "#09090b",
 };
 
@@ -33,7 +35,7 @@ export default function RootLayout({
     <html lang="pt-BR" className={`${inter.variable} dark h-full`}>
       <body className="min-h-full bg-zinc-950 font-sans text-white antialiased">
         <AppShell>
-          <main className="mx-auto min-h-full max-w-lg px-4 pb-28 pt-6">
+          <main className="mx-auto min-h-full w-full max-w-lg px-4 pb-[calc(6.5rem+env(safe-area-inset-bottom))] pt-[max(1.25rem,env(safe-area-inset-top))]">
             {children}
           </main>
         </AppShell>

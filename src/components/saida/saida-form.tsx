@@ -85,9 +85,9 @@ export function SaidaForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-3">
-        <Label className="text-zinc-400">Categoria</Label>
+        <Label className="block text-center text-zinc-400">Categoria</Label>
         <div className="space-y-2">
           {categorias.map((cat) => {
             const Icon = cat.icon;
@@ -97,17 +97,17 @@ export function SaidaForm() {
                 type="button"
                 onClick={() => setCategoria(cat.value)}
                 className={cn(
-                  "flex w-full items-center gap-3 rounded-xl border px-4 py-3.5 transition-all",
+                  "flex min-h-14 w-full items-center gap-3 rounded-2xl border-2 px-4 py-3.5 transition-all active:scale-[0.99]",
                   categoria === cat.value
-                    ? "border-red-400 bg-red-400/10"
-                    : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                    ? "border-rose-400 bg-rose-500/15"
+                    : "border-zinc-800 bg-zinc-900"
                 )}
               >
                 <div
                   className={cn(
-                    "flex h-10 w-10 items-center justify-center rounded-lg",
+                    "flex h-11 w-11 items-center justify-center rounded-xl",
                     categoria === cat.value
-                      ? "bg-red-400/20 text-red-400"
+                      ? "bg-rose-500/25 text-rose-400"
                       : "bg-zinc-800 text-zinc-500"
                   )}
                 >
@@ -115,8 +115,8 @@ export function SaidaForm() {
                 </div>
                 <span
                   className={cn(
-                    "font-medium",
-                    categoria === cat.value ? "text-red-400" : "text-white"
+                    "text-base font-semibold",
+                    categoria === cat.value ? "text-rose-400" : "text-white"
                   )}
                 >
                   {SAIDA_CATEGORIA_LABELS[cat.value]}
@@ -128,27 +128,30 @@ export function SaidaForm() {
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="valor" className="text-zinc-400">
+        <Label htmlFor="valor" className="block text-center text-zinc-400">
           Valor
         </Label>
         <div className="relative">
-          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-semibold text-red-400">
+          <span className="absolute left-4 top-1/2 -translate-y-1/2 text-lg font-bold text-rose-400">
             R$
           </span>
           <input
             id="valor"
             type="text"
-            inputMode="numeric"
+            inputMode="decimal"
             placeholder="0,00"
             value={valor}
             onChange={(e) => setValor(maskCurrencyInput(e.target.value))}
-            className="h-14 w-full rounded-xl border border-zinc-800 bg-zinc-900 pl-12 pr-4 text-2xl font-bold text-white placeholder:text-zinc-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/20"
+            className="h-16 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 pl-12 pr-4 text-center text-2xl font-bold text-white placeholder:text-zinc-600 focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-400/20"
           />
         </div>
       </div>
 
       <div className="space-y-2">
-        <Label htmlFor="descricao-saida" className="text-zinc-400">
+        <Label
+          htmlFor="descricao-saida"
+          className="block text-center text-zinc-400"
+        >
           Descrição
         </Label>
         <input
@@ -157,7 +160,7 @@ export function SaidaForm() {
           placeholder="Ex: Pagamento auxiliar"
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
-          className="h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 text-white placeholder:text-zinc-600 focus:border-red-400 focus:outline-none focus:ring-2 focus:ring-red-400/20"
+          className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 px-4 text-center text-base text-white placeholder:text-zinc-600 focus:border-rose-400 focus:outline-none focus:ring-2 focus:ring-rose-400/20"
         />
       </div>
 
@@ -165,7 +168,7 @@ export function SaidaForm() {
         <Button
           onClick={handleSubmit}
           disabled={loading}
-          className="h-14 w-full rounded-xl bg-red-500 text-base font-bold text-white hover:bg-red-400"
+          className="h-14 w-full rounded-2xl bg-rose-500 text-base font-bold text-white shadow-lg shadow-rose-500/25 hover:bg-rose-400"
         >
           {loading ? "Salvando..." : "Registrar saída"}
         </Button>

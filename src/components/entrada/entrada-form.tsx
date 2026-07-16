@@ -96,22 +96,22 @@ export function EntradaForm() {
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-5">
       <div className="space-y-3">
-        <Label className="text-zinc-400">Tipo de serviço</Label>
+        <Label className="block text-center text-zinc-400">Tipo de serviço</Label>
         <div className="grid grid-cols-2 gap-3">
           <button
             type="button"
             onClick={() => setTipoServico("lavagem")}
             className={cn(
-              "flex flex-col items-center gap-2 rounded-xl border p-4 transition-all",
+              "flex min-h-[5.5rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
               tipoServico === "lavagem"
-                ? "border-amber-400 bg-amber-400/10 text-amber-400"
-                : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700"
+                ? "border-emerald-400 bg-emerald-500/15 text-emerald-400 shadow-[0_0_20px_-8px_rgba(52,211,153,0.5)]"
+                : "border-zinc-800 bg-zinc-900 text-zinc-400"
             )}
           >
-            <Car className="h-6 w-6" />
-            <span className="text-sm font-semibold">Lavagem</span>
+            <Car className="h-7 w-7" />
+            <span className="text-sm font-bold">Lavagem</span>
           </button>
           <button
             type="button"
@@ -120,17 +120,15 @@ export function EntradaForm() {
               setPolimento(false);
             }}
             className={cn(
-              "flex flex-col items-center gap-2 rounded-xl border p-4 transition-all",
+              "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
               tipoServico === "pf"
-                ? "border-amber-400 bg-amber-400/10 text-amber-400"
-                : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700"
+                ? "border-emerald-400 bg-emerald-500/15 text-emerald-400 shadow-[0_0_20px_-8px_rgba(52,211,153,0.5)]"
+                : "border-zinc-800 bg-zinc-900 text-zinc-400"
             )}
           >
-            <Sparkles className="h-6 w-6" />
-            <span className="text-sm font-semibold">PF</span>
-            <span className="text-xs text-zinc-500">
-              {formatCurrency(PRECO_PF)}
-            </span>
+            <Sparkles className="h-7 w-7" />
+            <span className="text-sm font-bold">PF</span>
+            <span className="text-xs opacity-70">{formatCurrency(PRECO_PF)}</span>
           </button>
         </div>
       </div>
@@ -141,7 +139,9 @@ export function EntradaForm() {
           animate={{ opacity: 1, height: "auto" }}
           className="space-y-3"
         >
-          <Label className="text-zinc-400">Categoria do veículo</Label>
+          <Label className="block text-center text-zinc-400">
+            Categoria do veículo
+          </Label>
           <div className="space-y-2">
             {categoriasLavagem.map((cat) => (
               <button
@@ -149,43 +149,53 @@ export function EntradaForm() {
                 type="button"
                 onClick={() => setCategoria(cat.value)}
                 className={cn(
-                  "flex w-full items-center justify-between rounded-xl border px-4 py-3.5 transition-all",
+                  "flex min-h-14 w-full items-center justify-between rounded-2xl border-2 px-4 py-3.5 transition-all active:scale-[0.99]",
                   categoria === cat.value
-                    ? "border-amber-400 bg-amber-400/10"
-                    : "border-zinc-800 bg-zinc-900 hover:border-zinc-700"
+                    ? "border-emerald-400 bg-emerald-500/15"
+                    : "border-zinc-800 bg-zinc-900"
                 )}
               >
                 <span
                   className={cn(
-                    "font-medium",
-                    categoria === cat.value ? "text-amber-400" : "text-white"
+                    "font-semibold",
+                    categoria === cat.value ? "text-emerald-400" : "text-white"
                   )}
                 >
                   {cat.label}
                 </span>
-                <span className="text-sm text-zinc-500">
+                <span
+                  className={cn(
+                    "text-base font-bold",
+                    categoria === cat.value ? "text-emerald-300" : "text-zinc-400"
+                  )}
+                >
                   {formatCurrency(cat.preco)}
                 </span>
               </button>
             ))}
           </div>
 
-          <div className="space-y-2 pt-2">
-            <Label className="text-zinc-400">Deseja polimento?</Label>
+          <div className="space-y-2 pt-1">
+            <Label className="block text-center text-zinc-400">
+              Deseja polimento?
+            </Label>
             <div className="grid grid-cols-2 gap-3">
               {[
                 { value: false, label: "Não" },
-                { value: true, label: `Sim (+${formatCurrency(PRECO_POLIMENTO)})` },
+                {
+                  value: true,
+                  label: `Sim (+${formatCurrency(PRECO_POLIMENTO)})`,
+                },
               ].map((opt) => (
                 <button
                   key={String(opt.value)}
                   type="button"
                   onClick={() => setPolimento(opt.value)}
                   className={cn(
-                    "rounded-xl border py-3 text-sm font-semibold transition-all",
+                    "min-h-12 rounded-2xl border-2 py-3 text-sm font-bold transition-all active:scale-[0.98]",
                     polimento === opt.value
-                      ? "border-amber-400 bg-amber-400/10 text-amber-400"
-                      : "border-zinc-800 bg-zinc-900 text-zinc-400 hover:border-zinc-700"
+                      ? "border-emerald-400 bg-emerald-500/15 text-emerald-400"
+                      : "border-zinc-800 bg-zinc-900 text-zinc-400"
                   )}
                 >
                   {opt.label}
@@ -197,7 +207,7 @@ export function EntradaForm() {
       )}
 
       <div className="space-y-2">
-        <Label htmlFor="descricao" className="text-zinc-400">
+        <Label htmlFor="descricao" className="block text-center text-zinc-400">
           Descrição (opcional)
         </Label>
         <input
@@ -206,17 +216,15 @@ export function EntradaForm() {
           placeholder="Ex: Cliente João lavagem completa"
           value={descricao}
           onChange={(e) => setDescricao(e.target.value)}
-          className="h-12 w-full rounded-xl border border-zinc-800 bg-zinc-900 px-4 text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+          className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 px-4 text-center text-base text-white placeholder:text-zinc-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
         />
       </div>
 
-      <div className="rounded-xl bg-zinc-800/50 p-4">
-        <div className="flex items-center justify-between">
-          <span className="text-sm text-zinc-400">Total</span>
-          <span className="text-2xl font-bold text-amber-400">
-            {formatCurrency(valor)}
-          </span>
-        </div>
+      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-center">
+        <p className="text-sm text-zinc-400">Total a receber</p>
+        <p className="mt-1 text-3xl font-bold text-emerald-400">
+          {formatCurrency(valor)}
+        </p>
         {tipoServico === "lavagem" && polimento && (
           <p className="mt-1 text-xs text-zinc-500">
             {CATEGORIA_LABELS[categoria]} + Polimento
@@ -228,7 +236,7 @@ export function EntradaForm() {
         <Button
           onClick={handleSubmit}
           disabled={loading}
-          className="h-14 w-full rounded-xl bg-amber-400 text-base font-bold text-black hover:bg-amber-300"
+          className="h-14 w-full rounded-2xl bg-emerald-500 text-base font-bold text-black shadow-lg shadow-emerald-500/25 hover:bg-emerald-400"
         >
           {loading ? "Salvando..." : "Registrar entrada"}
         </Button>
