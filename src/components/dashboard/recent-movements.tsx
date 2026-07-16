@@ -6,8 +6,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency, formatTime } from "@/lib/format";
 import {
   CATEGORIA_LABELS,
-  PRECO_POLIMENTO,
-  PRECOS_LAVAGEM,
   SAIDA_CATEGORIA_LABELS,
 } from "@/types";
 import type { Entrada, Saida } from "@/types";
@@ -29,33 +27,36 @@ function EmptyState({ message }: { message: string }) {
 }
 
 function EntradaItem({ entrada }: { entrada: Entrada }) {
-  const baseValor =
-    entrada.tipo === "lavagem" && entrada.categoria !== "outro"
-      ? PRECOS_LAVAGEM[entrada.categoria as keyof typeof PRECOS_LAVAGEM]
-      : entrada.valor;
-
+  const desconto = Number(entrada.desconto ?? 0);
   const label =
     entrada.tipo === "outro"
       ? "PF"
       : `Lavagem ${CATEGORIA_LABELS[entrada.categoria]}`;
 
+  const detalhes = [
+    formatTime(entrada.created_at),
+    entrada.placa,
+    entrada.modelo,
+    entrada.descricao,
+    desconto > 0 ? `Desc. ${formatCurrency(desconto)}` : null,
+  ]
+    .filter(Boolean)
+    .join(" · ");
+
   return (
     <>
       <div className="flex items-center justify-between py-2">
-        <div className="flex items-center gap-3">
-          <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-emerald-500/10">
+        <div className="flex min-w-0 items-center gap-3">
+          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
             <ArrowUpRight className="h-4 w-4 text-emerald-400" />
           </div>
-          <div>
-            <p className="text-sm font-medium text-white">{label}</p>
-            <p className="text-xs text-zinc-500">
-              {formatTime(entrada.created_at)}
-              {entrada.descricao && ` · ${entrada.descricao}`}
-            </p>
+          <div className="min-w-0">
+            <p className="truncate text-sm font-medium text-white">{label}</p>
+            <p className="truncate text-xs text-zinc-500">{detalhes}</p>
           </div>
         </div>
-        <span className="text-sm font-semibold text-emerald-400">
-          + {formatCurrency(baseValor)}
+        <span className="shrink-0 text-sm font-semibold text-emerald-400">
+          + {formatCurrency(Number(entrada.valor))}
         </span>
       </div>
       {entrada.polimento && (
@@ -67,7 +68,7 @@ function EntradaItem({ entrada }: { entrada: Entrada }) {
             </p>
           </div>
           <span className="text-sm font-semibold text-emerald-400">
-            + {formatCurrency(PRECO_POLIMENTO)}
+            incluso
           </span>
         </div>
       )}

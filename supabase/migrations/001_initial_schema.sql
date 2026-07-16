@@ -18,6 +18,9 @@ CREATE TABLE IF NOT EXISTS entradas (
   categoria TEXT NOT NULL CHECK (categoria IN ('hatch', 'sedan', 'suv', 'camionete', 'outro')),
   polimento BOOLEAN NOT NULL DEFAULT FALSE,
   valor NUMERIC(12, 2) NOT NULL,
+  desconto NUMERIC(12, 2) NOT NULL DEFAULT 0,
+  placa TEXT,
+  modelo TEXT,
   descricao TEXT,
   created_at TIMESTAMPTZ NOT NULL DEFAULT NOW()
 );

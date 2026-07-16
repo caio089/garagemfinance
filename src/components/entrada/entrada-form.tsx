@@ -5,9 +5,14 @@ import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
-import { formatCurrency } from "@/lib/format";
+import {
+  formatCurrency,
+  maskCurrencyInput,
+  parseCurrencyInput,
+} from "@/lib/format";
 import { buscarDiaAberto } from "@/services/dias.service";
 import {
+  calcularValorBase,
   calcularValorEntrada,
   criarEntrada,
 } from "@/services/entradas.service";
@@ -39,16 +44,42 @@ export function EntradaForm() {
   const [tipoServico, setTipoServico] = useState<TipoServico>("lavagem");
   const [categoria, setCategoria] = useState<EntradaCategoria>("hatch");
   const [polimento, setPolimento] = useState(false);
+  const [descontoInput, setDescontoInput] = useState("");
+  const [placa, setPlaca] = useState("");
+  const [modelo, setModelo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [loading, setLoading] = useState(false);
   const [semDia, setSemDia] = useState(false);
 
+  const desconto =
+    tipoServico === "lavagem" ? parseCurrencyInput(descontoInput) : 0;
+
+  const valorBase =
+    tipoServico === "pf"
+      ? PRECO_PF
+      : calcularValorBase("lavagem", categoria, polimento);
+
   const valor =
     tipoServico === "pf"
       ? PRECO_PF
-      : calcularValorEntrada("lavagem", categoria, polimento);
+      : calcularValorEntrada("lavagem", categoria, polimento, desconto);
 
   const handleSubmit = async () => {
+    if (tipoServico === "lavagem") {
+      if (!placa.trim()) {
+        toast.error("Informe a placa do carro.");
+        return;
+      }
+      if (!modelo.trim()) {
+        toast.error("Informe o modelo do carro.");
+        return;
+      }
+      if (desconto > valorBase) {
+        toast.error("O desconto não pode ser maior que o valor da lavagem.");
+        return;
+      }
+    }
+
     setLoading(true);
     try {
       const dia = await buscarDiaAberto();
@@ -63,6 +94,9 @@ export function EntradaForm() {
         tipo: tipoServico === "pf" ? "outro" : "lavagem",
         categoria: tipoServico === "pf" ? "outro" : categoria,
         polimento: tipoServico === "lavagem" ? polimento : false,
+        desconto: tipoServico === "lavagem" ? desconto : 0,
+        placa: tipoServico === "lavagem" ? placa : undefined,
+        modelo: tipoServico === "lavagem" ? modelo : undefined,
         descricao: descricao || undefined,
       });
 
@@ -118,6 +152,9 @@ export function EntradaForm() {
             onClick={() => {
               setTipoServico("pf");
               setPolimento(false);
+              setDescontoInput("");
+              setPlaca("");
+              setModelo("");
             }}
             className={cn(
               "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
@@ -175,6 +212,31 @@ export function EntradaForm() {
             ))}
           </div>
 
+          <div className="space-y-2">
+            <Label htmlFor="desconto" className="block text-center text-zinc-400">
+              Desconto (opcional)
+            </Label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-bold text-amber-400">
+                R$
+              </span>
+              <input
+                id="desconto"
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={descontoInput}
+                onChange={(e) => setDescontoInput(maskCurrencyInput(e.target.value))}
+                className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 pl-12 pr-4 text-center text-base font-bold text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+              />
+            </div>
+            {desconto > 0 && (
+              <p className="text-center text-xs text-amber-400/80">
+                Será descontado do valor da lavagem
+              </p>
+            )}
+          </div>
+
           <div className="space-y-2 pt-1">
             <Label className="block text-center text-zinc-400">
               Deseja polimento?
@@ -203,6 +265,37 @@ export function EntradaForm() {
               ))}
             </div>
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="placa" className="block text-center text-zinc-400">
+              Placa do carro
+            </Label>
+            <input
+              id="placa"
+              type="text"
+              autoCapitalize="characters"
+              placeholder="ABC1D23"
+              value={placa}
+              onChange={(e) =>
+                setPlaca(e.target.value.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7))
+              }
+              className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 px-4 text-center text-base font-bold tracking-widest text-white placeholder:text-zinc-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+            />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="modelo" className="block text-center text-zinc-400">
+              Modelo do carro
+            </Label>
+            <input
+              id="modelo"
+              type="text"
+              placeholder="Ex: Gol, Onix, Hilux"
+              value={modelo}
+              onChange={(e) => setModelo(e.target.value)}
+              className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 px-4 text-center text-base text-white placeholder:text-zinc-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+            />
+          </div>
         </motion.div>
       )}
 
@@ -225,9 +318,11 @@ export function EntradaForm() {
         <p className="mt-1 text-3xl font-bold text-emerald-400">
           {formatCurrency(valor)}
         </p>
-        {tipoServico === "lavagem" && polimento && (
+        {tipoServico === "lavagem" && (
           <p className="mt-1 text-xs text-zinc-500">
-            {CATEGORIA_LABELS[categoria]} + Polimento
+            {CATEGORIA_LABELS[categoria]}
+            {polimento ? " + Polimento" : ""}
+            {desconto > 0 ? ` − Desconto ${formatCurrency(desconto)}` : ""}
           </p>
         )}
       </div>

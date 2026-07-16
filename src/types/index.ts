@@ -27,6 +27,9 @@ export interface Entrada {
   categoria: EntradaCategoria;
   polimento: boolean;
   valor: number;
+  desconto: number;
+  placa: string | null;
+  modelo: string | null;
   descricao: string | null;
   created_at: string;
 }
