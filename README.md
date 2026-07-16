@@ -5,7 +5,7 @@ Sistema financeiro mobile-first para controle de caixa do lava-jato **Garagem Fe
 ## Funcionalidades
 
 - **Iniciar/Finalizar Dia** — controle diário do caixa com valor inicial e relatório completo
-- **Entradas** — lavagens (Hatch/Sedan, SUV, Camionete), polimento (+R$10) e PF (R$20)
+- **Entradas** — lavagens (Hatch/Sedan, SUV, Camionete), polimento e alimentação (itens cadastrados)
 - **Saídas** — cozinha, funcionário e lava-jato
 - **Dashboard** — métricas em tempo real, gráficos e movimentações recentes
 - **Mobile-first** — navegação inferior fixa, botões grandes e interface intuitiva
@@ -112,11 +112,11 @@ src/
 
 | Serviço        | Valor  |
 |----------------|--------|
-| Hatch/Sedan    | R$ 50  |
-| SUV            | R$ 70  |
-| Camionete      | R$ 80  |
-| Polimento      | +R$ 10 |
-| PF             | R$ 20  |
+| Hatch/Sedan    | R$ 55 (editável) |
+| SUV            | R$ 70 (editável) |
+| Camionete      | R$ 80 (editável) |
+| Polimento      | +R$ 10 (editável)|
+| Alimentação    | Itens cadastrados |
 
 ## Fluxo de uso
 

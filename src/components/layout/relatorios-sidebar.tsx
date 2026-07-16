@@ -27,8 +27,10 @@ import {
   ChevronRight,
   FileBarChart,
   Inbox,
+  Settings,
   X,
 } from "lucide-react";
+import Link from "next/link";
 
 const filtros: { id: FiltroRelatorio; label: string; icon: typeof CalendarDays }[] = [
   { id: "dias", label: "Dias", icon: CalendarDays },
@@ -219,6 +221,19 @@ export function RelatoriosSidebar() {
                     )}
                   </>
                 )}
+              </div>
+
+              <div className="border-t border-zinc-800 p-3">
+                <Link
+                  href="/cadastro"
+                  onClick={() => setOpen(false)}
+                  className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-3 text-sm font-semibold text-zinc-200 transition-colors hover:border-amber-400/40 hover:text-amber-400"
+                >
+                  <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-amber-400/10 text-amber-400">
+                    <Settings className="h-4 w-4" />
+                  </div>
+                  Cadastro de preços e itens
+                </Link>
               </div>
             </motion.aside>
           </>

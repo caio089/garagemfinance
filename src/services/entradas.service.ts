@@ -1,36 +1,79 @@
 import { getSupabase } from "@/lib/supabase";
 import type { Entrada, EntradaCategoria, EntradaTipo } from "@/types";
 import {
-  PRECO_PF,
-  PRECO_POLIMENTO,
-  PRECOS_LAVAGEM,
-} from "@/types";
+  buscarPrecosLavagem,
+  type PrecosLavagemMap,
+} from "@/services/precos.service";
 
-export function calcularValorBase(
-  tipo: EntradaTipo,
-  categoria: EntradaCategoria,
-  polimento: boolean
-): number {
-  if (tipo === "outro") return PRECO_PF;
-
-  const base =
-    categoria === "outro"
-      ? PRECO_PF
-      : PRECOS_LAVAGEM[categoria as keyof typeof PRECOS_LAVAGEM] ?? 0;
-
-  return polimento ? base + PRECO_POLIMENTO : base;
-}
-
-/** Valor final = base (lavagem + polimento) - desconto, nunca negativo */
-export function calcularValorEntrada(
+export function calcularValorBaseComPrecos(
   tipo: EntradaTipo,
   categoria: EntradaCategoria,
   polimento: boolean,
-  desconto = 0
+  precos: PrecosLavagemMap,
+  valorPersonalizado?: number
 ): number {
-  const base = calcularValorBase(tipo, categoria, polimento);
+  if (tipo === "outro") return Math.max(0, valorPersonalizado ?? 0);
+
+  const base =
+    categoria === "outro"
+      ? 0
+      : precos[categoria as keyof PrecosLavagemMap] ?? 0;
+
+  return polimento ? base + precos.polimento : base;
+}
+
+export function calcularValorEntradaComPrecos(
+  tipo: EntradaTipo,
+  categoria: EntradaCategoria,
+  polimento: boolean,
+  precos: PrecosLavagemMap,
+  desconto = 0,
+  valorPersonalizado?: number
+): number {
+  const base = calcularValorBaseComPrecos(
+    tipo,
+    categoria,
+    polimento,
+    precos,
+    valorPersonalizado
+  );
   const descontoAplicado = Math.max(0, Math.min(desconto, base));
   return Math.max(0, base - descontoAplicado);
+}
+
+/** Compat: usa preços do banco */
+export async function calcularValorBase(
+  tipo: EntradaTipo,
+  categoria: EntradaCategoria,
+  polimento: boolean,
+  valorPersonalizado?: number
+): Promise<number> {
+  const precos = await buscarPrecosLavagem();
+  return calcularValorBaseComPrecos(
+    tipo,
+    categoria,
+    polimento,
+    precos,
+    valorPersonalizado
+  );
+}
+
+export async function calcularValorEntrada(
+  tipo: EntradaTipo,
+  categoria: EntradaCategoria,
+  polimento: boolean,
+  desconto = 0,
+  valorPersonalizado?: number
+): Promise<number> {
+  const precos = await buscarPrecosLavagem();
+  return calcularValorEntradaComPrecos(
+    tipo,
+    categoria,
+    polimento,
+    precos,
+    desconto,
+    valorPersonalizado
+  );
 }
 
 export async function criarEntrada(params: {
@@ -42,13 +85,18 @@ export async function criarEntrada(params: {
   placa?: string;
   modelo?: string;
   descricao?: string;
+  valorPersonalizado?: number;
+  itemAlimentacaoId?: string;
 }): Promise<Entrada> {
-  const desconto = params.tipo === "lavagem" ? Math.max(0, params.desconto ?? 0) : 0;
-  const valor = calcularValorEntrada(
+  const desconto =
+    params.tipo === "lavagem" ? Math.max(0, params.desconto ?? 0) : 0;
+
+  const valor = await calcularValorEntrada(
     params.tipo,
     params.categoria,
     params.polimento,
-    desconto
+    desconto,
+    params.valorPersonalizado
   );
 
   const { data, error } = await getSupabase()
@@ -60,9 +108,15 @@ export async function criarEntrada(params: {
       polimento: params.polimento,
       valor,
       desconto,
-      placa: params.tipo === "lavagem" ? params.placa?.trim().toUpperCase() || null : null,
-      modelo: params.tipo === "lavagem" ? params.modelo?.trim() || null : null,
+      placa:
+        params.tipo === "lavagem"
+          ? params.placa?.trim().toUpperCase() || null
+          : null,
+      modelo:
+        params.tipo === "lavagem" ? params.modelo?.trim() || null : null,
       descricao: params.descricao || null,
+      item_alimentacao_id:
+        params.tipo === "outro" ? params.itemAlimentacaoId || null : null,
     })
     .select()
     .single();

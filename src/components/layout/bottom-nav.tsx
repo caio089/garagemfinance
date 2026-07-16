@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Home, Minus, Plus } from "lucide-react";
+import { Home, Minus, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -16,6 +16,7 @@ const navItems = [
     idleBg: "bg-emerald-500/15",
     idleText: "text-emerald-400",
     ring: "ring-emerald-500/40",
+    bar: "bg-emerald-400",
   },
   {
     href: "/",
@@ -26,6 +27,7 @@ const navItems = [
     idleBg: "bg-zinc-800",
     idleText: "text-zinc-300",
     ring: "ring-amber-400/40",
+    bar: "bg-amber-400",
   },
   {
     href: "/saida",
@@ -36,6 +38,18 @@ const navItems = [
     idleBg: "bg-rose-500/15",
     idleText: "text-rose-400",
     ring: "ring-rose-500/40",
+    bar: "bg-rose-400",
+  },
+  {
+    href: "/cadastro",
+    label: "Cadastro",
+    icon: Settings,
+    activeBg: "bg-sky-400",
+    activeText: "text-sky-400",
+    idleBg: "bg-sky-500/15",
+    idleText: "text-sky-400",
+    ring: "ring-sky-400/40",
+    bar: "bg-sky-400",
   },
 ];
 
@@ -49,45 +63,37 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800/80 bg-zinc-950/95 backdrop-blur-lg">
-      <div className="mx-auto flex max-w-lg items-end justify-around gap-2 px-3 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex max-w-lg items-end justify-around gap-1 px-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
-          const isHome = item.href === "/";
 
           return (
             <Link
               key={item.href}
               href={item.href}
-              className="relative flex flex-1 flex-col items-center gap-1.5 py-1"
+              className="relative flex flex-1 flex-col items-center gap-1 py-1"
             >
               {active && (
                 <motion.div
                   layoutId="nav-indicator"
-                  className={cn(
-                    "absolute -top-2 h-1 w-10 rounded-full",
-                    isHome ? "bg-amber-400" : item.href === "/entrada" ? "bg-emerald-400" : "bg-rose-400"
-                  )}
+                  className={cn("absolute -top-2 h-1 w-8 rounded-full", item.bar)}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
               <div
                 className={cn(
-                  "flex items-center justify-center rounded-2xl transition-all",
-                  isHome ? "h-12 w-12" : "h-14 w-14",
+                  "flex h-12 w-12 items-center justify-center rounded-2xl transition-all",
                   active
                     ? cn(item.activeBg, "text-black shadow-lg ring-2", item.ring)
                     : cn(item.idleBg, item.idleText)
                 )}
               >
-                <Icon
-                  className={cn(isHome ? "h-5 w-5" : "h-6 w-6")}
-                  strokeWidth={active ? 2.75 : 2.5}
-                />
+                <Icon className="h-5 w-5" strokeWidth={active ? 2.75 : 2.5} />
               </div>
               <span
                 className={cn(
-                  "text-[11px] font-bold tracking-wide",
+                  "text-[10px] font-bold tracking-wide",
                   active ? item.activeText : item.idleText
                 )}
               >

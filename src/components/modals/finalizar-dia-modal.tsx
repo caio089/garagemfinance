@@ -158,7 +158,7 @@ export function FinalizarDiaModal({
                     <p className="text-2xl font-bold text-white">
                       {resumo.outros}
                     </p>
-                    <p className="text-xs text-zinc-500">Outros</p>
+                    <p className="text-xs text-zinc-500">Alimentação</p>
                   </div>
                 </div>
               </div>

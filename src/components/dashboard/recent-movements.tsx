@@ -1,15 +1,14 @@
 "use client";
 
+import { useState } from "react";
 import { motion } from "framer-motion";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DetalheMovimentoModal } from "@/components/dashboard/detalhe-movimento-modal";
 import { formatCurrency, formatTime } from "@/lib/format";
-import {
-  CATEGORIA_LABELS,
-  SAIDA_CATEGORIA_LABELS,
-} from "@/types";
+import { CATEGORIA_LABELS, SAIDA_CATEGORIA_LABELS } from "@/types";
 import type { Entrada, Saida } from "@/types";
-import { ArrowDownLeft, ArrowUpRight, Inbox } from "lucide-react";
+import { ArrowDownLeft, ArrowUpRight, ChevronRight, Inbox } from "lucide-react";
 
 interface RecentMovementsProps {
   entradas: Entrada[];
@@ -26,53 +25,104 @@ function EmptyState({ message }: { message: string }) {
   );
 }
 
-function EntradaItem({ entrada }: { entrada: Entrada }) {
+function EntradaItem({
+  entrada,
+  onClick,
+}: {
+  entrada: Entrada;
+  onClick: () => void;
+}) {
   const desconto = Number(entrada.desconto ?? 0);
   const label =
     entrada.tipo === "outro"
-      ? "PF"
+      ? (() => {
+          const desc = entrada.descricao?.trim();
+          if (!desc) return "Alimentação";
+          // Formato padrão: "Comida: Marmita"
+          if (desc.includes(":")) {
+            return desc.split(":").slice(1).join(":").trim() || "Alimentação";
+          }
+          return desc;
+        })()
       : `Lavagem ${CATEGORIA_LABELS[entrada.categoria]}`;
 
   const detalhes = [
     formatTime(entrada.created_at),
     entrada.placa,
     entrada.modelo,
-    entrada.descricao,
     desconto > 0 ? `Desc. ${formatCurrency(desconto)}` : null,
   ]
     .filter(Boolean)
     .join(" · ");
 
   return (
-    <>
-      <div className="flex items-center justify-between py-2">
-        <div className="flex min-w-0 items-center gap-3">
-          <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
-            <ArrowUpRight className="h-4 w-4 text-emerald-400" />
-          </div>
-          <div className="min-w-0">
-            <p className="truncate text-sm font-medium text-white">{label}</p>
-            <p className="truncate text-xs text-zinc-500">{detalhes}</p>
-          </div>
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-2 py-2.5 text-left transition-colors hover:bg-zinc-800/40 active:bg-zinc-800/60"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
+          <ArrowUpRight className="h-4 w-4 text-emerald-400" />
         </div>
-        <span className="shrink-0 text-sm font-semibold text-emerald-400">
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-white">{label}</p>
+          <p className="truncate text-xs text-zinc-500">{detalhes}</p>
+          {entrada.descricao && (
+            <p className="mt-0.5 truncate text-xs text-zinc-400">
+              {entrada.descricao}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <span className="text-sm font-semibold text-emerald-400">
           + {formatCurrency(Number(entrada.valor))}
         </span>
+        <ChevronRight className="h-4 w-4 text-zinc-600" />
       </div>
-      {entrada.polimento && (
-        <div className="flex items-center justify-between py-2 pl-11">
-          <div>
-            <p className="text-sm font-medium text-white">Polimento</p>
-            <p className="text-xs text-zinc-500">
-              {formatTime(entrada.created_at)}
-            </p>
-          </div>
-          <span className="text-sm font-semibold text-emerald-400">
-            incluso
-          </span>
+    </button>
+  );
+}
+
+function SaidaItem({
+  saida,
+  onClick,
+}: {
+  saida: Saida;
+  onClick: () => void;
+}) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className="flex w-full items-center justify-between gap-2 py-2.5 text-left transition-colors hover:bg-zinc-800/40 active:bg-zinc-800/60"
+    >
+      <div className="flex min-w-0 items-center gap-3">
+        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
+          <ArrowDownLeft className="h-4 w-4 text-red-400" />
         </div>
-      )}
-    </>
+        <div className="min-w-0">
+          <p className="truncate text-sm font-medium text-white">
+            {SAIDA_CATEGORIA_LABELS[saida.categoria]}
+          </p>
+          <p className="truncate text-xs text-zinc-500">
+            {formatTime(saida.created_at)}
+          </p>
+          {saida.descricao && (
+            <p className="mt-0.5 truncate text-xs text-zinc-400">
+              {saida.descricao}
+            </p>
+          )}
+        </div>
+      </div>
+      <div className="flex shrink-0 items-center gap-1">
+        <span className="text-sm font-semibold text-red-400">
+          - {formatCurrency(Number(saida.valor))}
+        </span>
+        <ChevronRight className="h-4 w-4 text-zinc-600" />
+      </div>
+    </button>
   );
 }
 
@@ -81,6 +131,11 @@ export function RecentMovements({
   saidas,
   loading,
 }: RecentMovementsProps) {
+  const [entradaSelecionada, setEntradaSelecionada] = useState<Entrada | null>(
+    null
+  );
+  const [saidaSelecionada, setSaidaSelecionada] = useState<Saida | null>(null);
+
   if (loading) {
     return (
       <div className="space-y-3">
@@ -103,12 +158,16 @@ export function RecentMovements({
               Últimas entradas
             </CardTitle>
           </CardHeader>
-          <CardContent className="divide-y divide-zinc-800">
+          <CardContent className="divide-y divide-zinc-800 px-2 sm:px-4">
             {entradas.length === 0 ? (
               <EmptyState message="Nenhuma entrada registrada" />
             ) : (
               entradas.map((entrada) => (
-                <EntradaItem key={entrada.id} entrada={entrada} />
+                <EntradaItem
+                  key={entrada.id}
+                  entrada={entrada}
+                  onClick={() => setEntradaSelecionada(entrada)}
+                />
               ))
             )}
           </CardContent>
@@ -126,38 +185,30 @@ export function RecentMovements({
               Últimas saídas
             </CardTitle>
           </CardHeader>
-          <CardContent className="divide-y divide-zinc-800">
+          <CardContent className="divide-y divide-zinc-800 px-2 sm:px-4">
             {saidas.length === 0 ? (
               <EmptyState message="Nenhuma saída registrada" />
             ) : (
               saidas.map((saida) => (
-                <div
+                <SaidaItem
                   key={saida.id}
-                  className="flex items-center justify-between py-2"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-red-500/10">
-                      <ArrowDownLeft className="h-4 w-4 text-red-400" />
-                    </div>
-                    <div>
-                      <p className="text-sm font-medium text-white">
-                        {SAIDA_CATEGORIA_LABELS[saida.categoria]}
-                      </p>
-                      <p className="text-xs text-zinc-500">
-                        {formatTime(saida.created_at)}
-                        {saida.descricao && ` · ${saida.descricao}`}
-                      </p>
-                    </div>
-                  </div>
-                  <span className="text-sm font-semibold text-red-400">
-                    - {formatCurrency(Number(saida.valor))}
-                  </span>
-                </div>
+                  saida={saida}
+                  onClick={() => setSaidaSelecionada(saida)}
+                />
               ))
             )}
           </CardContent>
         </Card>
       </motion.div>
+
+      <DetalheMovimentoModal
+        entrada={entradaSelecionada}
+        saida={saidaSelecionada}
+        onClose={() => {
+          setEntradaSelecionada(null);
+          setSaidaSelecionada(null);
+        }}
+      />
     </div>
   );
 }

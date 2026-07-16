@@ -31,6 +31,7 @@ export interface Entrada {
   placa: string | null;
   modelo: string | null;
   descricao: string | null;
+  item_alimentacao_id: string | null;
   created_at: string;
 }
 
@@ -86,25 +87,67 @@ export interface DiaComResumo extends Dia {
   outros: number;
 }
 
-export const PRECOS_LAVAGEM: Record<
+export const PRECOS_LAVAGEM_PADRAO: Record<
   Exclude<EntradaCategoria, "outro">,
   number
 > = {
-  hatch: 50,
-  sedan: 50,
+  hatch: 55,
+  sedan: 55,
   suv: 70,
   camionete: 80,
 };
 
-export const PRECO_POLIMENTO = 10;
-export const PRECO_PF = 20;
+/** @deprecated use preços do banco via buscarPrecosLavagem */
+export const PRECOS_LAVAGEM = PRECOS_LAVAGEM_PADRAO;
+
+export const PRECO_POLIMENTO_PADRAO = 10;
+export const PRECO_POLIMENTO = PRECO_POLIMENTO_PADRAO;
+
+export type PrecoLavagemChave =
+  | "hatch"
+  | "sedan"
+  | "suv"
+  | "camionete"
+  | "polimento";
+
+export interface PrecoLavagem {
+  chave: PrecoLavagemChave;
+  valor: number;
+  updated_at?: string;
+}
+
+export type ItemAlimentacaoTipo = "bebida" | "comida" | "outro";
+
+export interface ItemAlimentacao {
+  id: string;
+  nome: string;
+  tipo: ItemAlimentacaoTipo;
+  valor: number;
+  ativo: boolean;
+  created_at: string;
+}
+
+export const PRECO_CHAVES_LABELS: Record<PrecoLavagemChave, string> = {
+  hatch: "Hatch/Sedan",
+  sedan: "Sedan",
+  suv: "SUV",
+  camionete: "Camionete",
+  polimento: "Polimento",
+};
+
+export const ITEM_ALIMENTACAO_TIPO_LABELS: Record<ItemAlimentacaoTipo, string> =
+  {
+    bebida: "Bebida",
+    comida: "Comida",
+    outro: "Outro",
+  };
 
 export const CATEGORIA_LABELS: Record<EntradaCategoria, string> = {
   hatch: "Hatch/Sedan",
   sedan: "Sedan",
   suv: "SUV",
   camionete: "Camionete",
-  outro: "PF",
+  outro: "Alimentação",
 };
 
 export const SAIDA_CATEGORIA_LABELS: Record<SaidaCategoria, string> = {
