@@ -3,6 +3,7 @@
 import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { motion } from "framer-motion";
+import Link from "next/link";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import {
@@ -11,19 +12,12 @@ import {
   parseCurrencyInput,
 } from "@/lib/format";
 import { buscarDiaAberto } from "@/services/dias.service";
-import {
-  calcularValorBaseComPrecos,
-  calcularValorEntradaComPrecos,
-  criarEntrada,
-} from "@/services/entradas.service";
-import {
-  buscarPrecosLavagem,
-  type PrecosLavagemMap,
-} from "@/services/precos.service";
-import { CATEGORIA_LABELS } from "@/types";
-import type { EntradaCategoria } from "@/types";
+import { calcularValorLavagem, criarEntrada } from "@/services/entradas.service";
+import { buscarPrecosLavagem } from "@/services/precos.service";
+import { listarServicosLavagem } from "@/services/servicos-lavagem.service";
+import type { ServicoLavagem } from "@/types";
 import { toast } from "sonner";
-import { AlertCircle, Car, UtensilsCrossed } from "lucide-react";
+import { AlertCircle, Car, Settings, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RestauranteMesas } from "@/components/entrada/restaurante-mesas";
 
@@ -32,59 +26,56 @@ type TipoServico = "lavagem" | "restaurante";
 export function EntradaForm() {
   const router = useRouter();
   const [tipoServico, setTipoServico] = useState<TipoServico>("lavagem");
-  const [categoria, setCategoria] = useState<EntradaCategoria>("hatch");
+  const [servicoId, setServicoId] = useState<string>("");
+  const [servicos, setServicos] = useState<ServicoLavagem[]>([]);
+  const [precoPolimento, setPrecoPolimento] = useState(10);
   const [polimento, setPolimento] = useState(false);
   const [descontoInput, setDescontoInput] = useState("");
   const [placa, setPlaca] = useState("");
   const [modelo, setModelo] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [precos, setPrecos] = useState<PrecosLavagemMap | null>(null);
   const [loading, setLoading] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [semDia, setSemDia] = useState(false);
 
   useEffect(() => {
-    buscarPrecosLavagem()
-      .then(setPrecos)
-      .catch(() => toast.error("Erro ao carregar preços."))
+    Promise.all([listarServicosLavagem(true), buscarPrecosLavagem()])
+      .then(([lista, precos]) => {
+        setServicos(lista);
+        setPrecoPolimento(precos.polimento);
+        if (lista.length > 0) setServicoId(lista[0].id);
+      })
+      .catch(() => toast.error("Erro ao carregar serviços."))
       .finally(() => setCarregando(false));
   }, []);
 
-  const categoriasLavagem = useMemo(() => {
-    if (!precos) return [];
-    return [
-      { value: "hatch" as const, label: "Hatch/Sedan", preco: precos.hatch },
-      { value: "suv" as const, label: "SUV", preco: precos.suv },
-      {
-        value: "camionete" as const,
-        label: "Camionete",
-        preco: precos.camionete,
-      },
-    ];
-  }, [precos]);
+  const servicoSelecionado = useMemo(
+    () => servicos.find((s) => s.id === servicoId) ?? null,
+    [servicos, servicoId]
+  );
 
   const desconto =
     tipoServico === "lavagem" ? parseCurrencyInput(descontoInput) : 0;
 
-  const valorBase =
-    !precos || tipoServico !== "lavagem"
-      ? 0
-      : calcularValorBaseComPrecos("lavagem", categoria, polimento, precos);
-
-  const valor =
-    !precos || tipoServico !== "lavagem"
-      ? 0
-      : calcularValorEntradaComPrecos(
-          "lavagem",
-          categoria,
-          polimento,
-          precos,
-          desconto
-        );
+  const { base: valorBase, total: valor } = useMemo(() => {
+    if (tipoServico !== "lavagem" || !servicoSelecionado) {
+      return { base: 0, total: 0 };
+    }
+    return calcularValorLavagem(
+      servicoSelecionado.valor,
+      polimento,
+      precoPolimento,
+      desconto
+    );
+  }, [tipoServico, servicoSelecionado, polimento, precoPolimento, desconto]);
 
   const handleSubmit = async () => {
-    if (!precos || tipoServico !== "lavagem") return;
+    if (tipoServico !== "lavagem") return;
 
+    if (!servicoSelecionado) {
+      toast.error("Cadastre um tipo de serviço em Cadastro.");
+      return;
+    }
     if (!placa.trim()) {
       toast.error("Informe a placa do carro.");
       return;
@@ -110,12 +101,14 @@ export function EntradaForm() {
       await criarEntrada({
         diaId: dia.id,
         tipo: "lavagem",
-        categoria,
         polimento,
         desconto,
         placa,
         modelo,
         descricao: descricao || undefined,
+        servicoLavagemId: servicoSelecionado.id,
+        nomeServico: servicoSelecionado.nome,
+        valorPersonalizado: servicoSelecionado.valor,
       });
       toast.success("Entrada registrada!");
       router.push("/");
@@ -146,7 +139,7 @@ export function EntradaForm() {
     );
   }
 
-  if (carregando || !precos) {
+  if (carregando) {
     return (
       <p className="py-10 text-center text-sm text-zinc-500">Carregando...</p>
     );
@@ -203,42 +196,61 @@ export function EntradaForm() {
           className="space-y-3"
         >
           <Label className="block text-center text-zinc-400">
-            Categoria do veículo
+            Tipo de serviço
           </Label>
-          <div className="space-y-2">
-            {categoriasLavagem.map((cat) => (
-              <button
-                key={cat.value}
-                type="button"
-                onClick={() => setCategoria(cat.value)}
-                className={cn(
-                  "flex min-h-14 w-full items-center justify-between rounded-2xl border-2 px-4 py-3.5 transition-all active:scale-[0.99]",
-                  categoria === cat.value
-                    ? "border-emerald-400 bg-emerald-500/15"
-                    : "border-zinc-800 bg-zinc-900"
-                )}
+
+          {servicos.length === 0 ? (
+            <div className="space-y-3 rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/50 p-5 text-center">
+              <p className="text-sm text-zinc-400">
+                Nenhum serviço cadastrado. Cadastre os tipos de lavagem
+                primeiro.
+              </p>
+              <Link
+                href="/cadastro"
+                className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-bold text-black"
               >
-                <span
+                <Settings className="h-4 w-4" />
+                Ir para Cadastro
+              </Link>
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {servicos.map((servico) => (
+                <button
+                  key={servico.id}
+                  type="button"
+                  onClick={() => setServicoId(servico.id)}
                   className={cn(
-                    "font-semibold",
-                    categoria === cat.value ? "text-emerald-400" : "text-white"
+                    "flex min-h-14 w-full items-center justify-between rounded-2xl border-2 px-4 py-3.5 transition-all active:scale-[0.99]",
+                    servicoId === servico.id
+                      ? "border-emerald-400 bg-emerald-500/15"
+                      : "border-zinc-800 bg-zinc-900"
                   )}
                 >
-                  {cat.label}
-                </span>
-                <span
-                  className={cn(
-                    "text-base font-bold",
-                    categoria === cat.value
-                      ? "text-emerald-300"
-                      : "text-zinc-400"
-                  )}
-                >
-                  {formatCurrency(cat.preco)}
-                </span>
-              </button>
-            ))}
-          </div>
+                  <span
+                    className={cn(
+                      "font-semibold",
+                      servicoId === servico.id
+                        ? "text-emerald-400"
+                        : "text-white"
+                    )}
+                  >
+                    {servico.nome}
+                  </span>
+                  <span
+                    className={cn(
+                      "text-base font-bold",
+                      servicoId === servico.id
+                        ? "text-emerald-300"
+                        : "text-zinc-400"
+                    )}
+                  >
+                    {formatCurrency(servico.valor)}
+                  </span>
+                </button>
+              ))}
+            </div>
+          )}
 
           <div className="space-y-2">
             <Label htmlFor="desconto" className="block text-center text-zinc-400">
@@ -271,7 +283,7 @@ export function EntradaForm() {
                 { value: false, label: "Não" },
                 {
                   value: true,
-                  label: `Sim (+${formatCurrency(precos.polimento)})`,
+                  label: `Sim (+${formatCurrency(precoPolimento)})`,
                 },
               ].map((opt) => (
                 <button
@@ -329,12 +341,12 @@ export function EntradaForm() {
 
           <div className="space-y-2">
             <Label htmlFor="descricao" className="block text-center text-zinc-400">
-              Descrição (opcional)
+              Observação (opcional)
             </Label>
             <input
               id="descricao"
               type="text"
-              placeholder="Ex: Cliente João lavagem completa"
+              placeholder="Ex: Cliente João"
               value={descricao}
               onChange={(e) => setDescricao(e.target.value)}
               className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 px-4 text-center text-base text-white placeholder:text-zinc-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
@@ -347,7 +359,7 @@ export function EntradaForm() {
               {formatCurrency(valor)}
             </p>
             <p className="mt-1 text-xs text-zinc-500">
-              {CATEGORIA_LABELS[categoria]}
+              {servicoSelecionado?.nome ?? "—"}
               {polimento ? " + Polimento" : ""}
               {desconto > 0 ? ` − Desconto ${formatCurrency(desconto)}` : ""}
             </p>
@@ -356,7 +368,7 @@ export function EntradaForm() {
           <motion.div whileTap={{ scale: 0.98 }}>
             <Button
               onClick={handleSubmit}
-              disabled={loading}
+              disabled={loading || servicos.length === 0}
               className="h-14 w-full rounded-2xl bg-emerald-500 text-base font-bold text-black shadow-lg shadow-emerald-500/25 hover:bg-emerald-400"
             >
               {loading ? "Salvando..." : "Registrar entrada"}

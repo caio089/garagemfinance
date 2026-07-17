@@ -14,7 +14,7 @@ export function Header({ diaAberto }: HeaderProps) {
     <motion.header
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-1 pl-14"
+      className="space-y-1"
     >
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0 flex-1 space-y-1">

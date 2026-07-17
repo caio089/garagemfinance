@@ -18,7 +18,7 @@ export default function CadastroPage() {
         </div>
         <h1 className="text-2xl font-bold text-white">Cadastro</h1>
         <p className="text-sm text-zinc-500">
-          Preços da lavagem e itens de alimentação
+          Preços e tipos de serviço da lavagem e cardápio
         </p>
       </div>
       <CadastroForm />

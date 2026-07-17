@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { Home, Minus, Plus, Settings } from "lucide-react";
+import { FileBarChart, Home, Minus, Plus, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -41,6 +41,17 @@ const navItems = [
     bar: "bg-rose-400",
   },
   {
+    href: "/relatorios",
+    label: "Relatórios",
+    icon: FileBarChart,
+    activeBg: "bg-violet-400",
+    activeText: "text-violet-400",
+    idleBg: "bg-violet-500/15",
+    idleText: "text-violet-400",
+    ring: "ring-violet-400/40",
+    bar: "bg-violet-400",
+  },
+  {
     href: "/cadastro",
     label: "Cadastro",
     icon: Settings,
@@ -63,7 +74,7 @@ export function BottomNav() {
 
   return (
     <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800/80 bg-zinc-950/95 backdrop-blur-lg">
-      <div className="mx-auto flex max-w-lg items-end justify-around gap-1 px-2 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+      <div className="mx-auto flex max-w-lg items-end justify-around gap-0.5 px-1 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
         {navItems.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
@@ -72,18 +83,18 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="relative flex flex-1 flex-col items-center gap-1 py-1"
+              className="relative flex flex-1 flex-col items-center gap-0.5 py-1"
             >
               {active && (
                 <motion.div
                   layoutId="nav-indicator"
-                  className={cn("absolute -top-2 h-1 w-8 rounded-full", item.bar)}
+                  className={cn("absolute -top-2 h-1 w-7 rounded-full", item.bar)}
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
               <div
                 className={cn(
-                  "flex h-12 w-12 items-center justify-center rounded-2xl transition-all",
+                  "flex h-11 w-11 items-center justify-center rounded-2xl transition-all",
                   active
                     ? cn(item.activeBg, "text-black shadow-lg ring-2", item.ring)
                     : cn(item.idleBg, item.idleText)
@@ -93,7 +104,7 @@ export function BottomNav() {
               </div>
               <span
                 className={cn(
-                  "text-[10px] font-bold tracking-wide",
+                  "text-[9px] font-bold tracking-wide",
                   active ? item.activeText : item.idleText
                 )}
               >

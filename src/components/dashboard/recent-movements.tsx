@@ -6,7 +6,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { DetalheMovimentoModal } from "@/components/dashboard/detalhe-movimento-modal";
 import { formatCurrency, formatTime } from "@/lib/format";
-import { CATEGORIA_LABELS, SAIDA_CATEGORIA_LABELS } from "@/types";
+import { labelEntrada } from "@/lib/movimento-labels";
+import { SAIDA_CATEGORIA_LABELS } from "@/types";
 import type { Entrada, Saida } from "@/types";
 import { ArrowDownLeft, ArrowUpRight, ChevronRight, Inbox } from "lucide-react";
 
@@ -34,22 +35,7 @@ function EntradaItem({
   onClick: () => void;
 }) {
   const desconto = Number(entrada.desconto ?? 0);
-  const label =
-    entrada.tipo === "outro"
-      ? (() => {
-          const desc = entrada.descricao?.trim();
-          if (!desc) return "Restaurante";
-          // "Mesa 1 · 2x PF, Coca..."
-          if (desc.startsWith("Mesa ")) {
-            const mesaParte = desc.split("·")[0]?.trim();
-            return mesaParte || "Restaurante";
-          }
-          if (desc.includes(":")) {
-            return desc.split(":").slice(1).join(":").trim() || "Restaurante";
-          }
-          return desc;
-        })()
-      : `Lavagem ${CATEGORIA_LABELS[entrada.categoria]}`;
+  const label = labelEntrada(entrada);
 
   const detalhes = [
     formatTime(entrada.created_at),

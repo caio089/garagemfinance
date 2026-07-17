@@ -10,9 +10,12 @@ import {
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
 import { RelatorioResumo } from "@/components/relatorios/relatorio-resumo";
+import { ListaMovimentosDia } from "@/components/relatorios/lista-movimentos-dia";
 import { formatDate } from "@/lib/format";
 import { calcularResumoDia } from "@/services/dias.service";
-import type { ResumoDia } from "@/types";
+import { buscarEntradasDoDia } from "@/services/entradas.service";
+import { buscarSaidasDoDia } from "@/services/saidas.service";
+import type { Entrada, ResumoDia, Saida } from "@/types";
 import { FileText } from "lucide-react";
 
 interface RelatorioDiaModalProps {
@@ -22,18 +25,34 @@ interface RelatorioDiaModalProps {
 
 export function RelatorioDiaModal({ diaId, onClose }: RelatorioDiaModalProps) {
   const [resumo, setResumo] = useState<ResumoDia | null>(null);
+  const [entradas, setEntradas] = useState<Entrada[]>([]);
+  const [saidas, setSaidas] = useState<Saida[]>([]);
   const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     if (!diaId) {
       setResumo(null);
+      setEntradas([]);
+      setSaidas([]);
       return;
     }
 
     setLoading(true);
-    calcularResumoDia(diaId)
-      .then(setResumo)
-      .catch(() => setResumo(null))
+    Promise.all([
+      calcularResumoDia(diaId),
+      buscarEntradasDoDia(diaId),
+      buscarSaidasDoDia(diaId),
+    ])
+      .then(([r, e, s]) => {
+        setResumo(r);
+        setEntradas(e);
+        setSaidas(s);
+      })
+      .catch(() => {
+        setResumo(null);
+        setEntradas([]);
+        setSaidas([]);
+      })
       .finally(() => setLoading(false));
   }, [diaId]);
 
@@ -61,8 +80,14 @@ export function RelatorioDiaModal({ diaId, onClose }: RelatorioDiaModalProps) {
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
+            className="space-y-5"
           >
             <RelatorioResumo resumo={resumo} />
+            <ListaMovimentosDia
+              entradas={entradas}
+              saidas={saidas}
+              permitirExcluir={false}
+            />
           </motion.div>
         ) : (
           <p className="py-8 text-center text-sm text-zinc-500">

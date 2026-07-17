@@ -236,7 +236,7 @@ export function DetalheMovimentoModal({
           </>
         )}
 
-        {(entrada || saida) && (
+        {(entrada || saida) && onDeleted && (
           <div className="pt-1">
             {confirmando ? (
               <div className="space-y-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">

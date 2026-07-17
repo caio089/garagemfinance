@@ -5,6 +5,18 @@ import {
   type PrecosLavagemMap,
 } from "@/services/precos.service";
 
+export function calcularValorLavagem(
+  valorServico: number,
+  polimento: boolean,
+  precoPolimento: number,
+  desconto = 0
+): { base: number; total: number } {
+  const base = Math.max(0, valorServico) + (polimento ? Math.max(0, precoPolimento) : 0);
+  const descontoAplicado = Math.max(0, Math.min(desconto, base));
+  return { base, total: Math.max(0, base - descontoAplicado) };
+}
+
+/** @deprecated prefer calcularValorLavagem com serviço cadastrado */
 export function calcularValorBaseComPrecos(
   tipo: EntradaTipo,
   categoria: EntradaCategoria,
@@ -16,7 +28,7 @@ export function calcularValorBaseComPrecos(
 
   const base =
     categoria === "outro"
-      ? 0
+      ? Math.max(0, valorPersonalizado ?? 0)
       : precos[categoria as keyof PrecosLavagemMap] ?? 0;
 
   return polimento ? base + precos.polimento : base;
@@ -41,7 +53,6 @@ export function calcularValorEntradaComPrecos(
   return Math.max(0, base - descontoAplicado);
 }
 
-/** Compat: usa preços do banco */
 export async function calcularValorBase(
   tipo: EntradaTipo,
   categoria: EntradaCategoria,
@@ -79,7 +90,7 @@ export async function calcularValorEntrada(
 export async function criarEntrada(params: {
   diaId: string;
   tipo: EntradaTipo;
-  categoria: EntradaCategoria;
+  categoria?: EntradaCategoria | string;
   polimento: boolean;
   desconto?: number;
   placa?: string;
@@ -87,24 +98,54 @@ export async function criarEntrada(params: {
   descricao?: string;
   valorPersonalizado?: number;
   itemAlimentacaoId?: string;
+  servicoLavagemId?: string;
+  nomeServico?: string;
 }): Promise<Entrada> {
   const desconto =
     params.tipo === "lavagem" ? Math.max(0, params.desconto ?? 0) : 0;
 
-  const valor = await calcularValorEntrada(
-    params.tipo,
-    params.categoria,
-    params.polimento,
-    desconto,
-    params.valorPersonalizado
-  );
+  let valor: number;
+  let categoria: string = params.categoria ?? "outro";
+
+  if (params.tipo === "lavagem" && params.servicoLavagemId) {
+    const precos = await buscarPrecosLavagem();
+    const { total } = calcularValorLavagem(
+      params.valorPersonalizado ?? 0,
+      params.polimento,
+      precos.polimento,
+      desconto
+    );
+    valor = total;
+    categoria = "outro";
+  } else if (params.tipo === "outro") {
+    valor = Math.max(0, params.valorPersonalizado ?? 0);
+    categoria = "outro";
+  } else {
+    valor = await calcularValorEntrada(
+      params.tipo,
+      (params.categoria as EntradaCategoria) ?? "hatch",
+      params.polimento,
+      desconto,
+      params.valorPersonalizado
+    );
+  }
+
+  const descricaoBase =
+    params.tipo === "lavagem" && params.nomeServico
+      ? `Lavagem: ${params.nomeServico}`
+      : null;
+  const observacao = params.descricao?.trim();
+  const descricao =
+    descricaoBase && observacao
+      ? `${descricaoBase} · ${observacao}`
+      : observacao || descricaoBase;
 
   const { data, error } = await getSupabase()
     .from("entradas")
     .insert({
       dia_id: params.diaId,
       tipo: params.tipo,
-      categoria: params.categoria,
+      categoria,
       polimento: params.polimento,
       valor,
       desconto,
@@ -114,9 +155,11 @@ export async function criarEntrada(params: {
           : null,
       modelo:
         params.tipo === "lavagem" ? params.modelo?.trim() || null : null,
-      descricao: params.descricao || null,
+      descricao,
       item_alimentacao_id:
         params.tipo === "outro" ? params.itemAlimentacaoId || null : null,
+      servico_lavagem_id:
+        params.tipo === "lavagem" ? params.servicoLavagemId || null : null,
     })
     .select()
     .single();

@@ -15,7 +15,7 @@ import {
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { formatCurrency } from "@/lib/format";
-import { CATEGORIA_LABELS } from "@/types";
+import { labelEntrada } from "@/lib/movimento-labels";
 import type { Entrada } from "@/types";
 
 interface DashboardChartsProps {
@@ -51,7 +51,7 @@ export function DashboardCharts({
   entradas
     .filter((e) => e.tipo === "lavagem")
     .forEach((e) => {
-      const label = CATEGORIA_LABELS[e.categoria];
+      const label = labelEntrada(e).replace(/^Lavagem\s+/i, "") || "Lavagem";
       servicosMap[label] = (servicosMap[label] ?? 0) + 1;
     });
 

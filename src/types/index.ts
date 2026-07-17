@@ -24,7 +24,7 @@ export interface Entrada {
   id: string;
   dia_id: string;
   tipo: EntradaTipo;
-  categoria: EntradaCategoria;
+  categoria: EntradaCategoria | string;
   polimento: boolean;
   valor: number;
   desconto: number;
@@ -32,6 +32,7 @@ export interface Entrada {
   modelo: string | null;
   descricao: string | null;
   item_alimentacao_id: string | null;
+  servico_lavagem_id: string | null;
   created_at: string;
 }
 
@@ -122,6 +123,14 @@ export interface ItemAlimentacao {
   id: string;
   nome: string;
   tipo: ItemAlimentacaoTipo;
+  valor: number;
+  ativo: boolean;
+  created_at: string;
+}
+
+export interface ServicoLavagem {
+  id: string;
+  nome: string;
   valor: number;
   ativo: boolean;
   created_at: string;
