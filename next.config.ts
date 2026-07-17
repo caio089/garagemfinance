@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
   images: {
     unoptimized: true,
   },
+  // Libera acesso pelo IP da rede (celular / outros dispositivos)
+  allowedDevOrigins: [
+    "192.168.0.2",
+    "127.0.0.1",
+    "localhost",
+  ],
   turbopack: {
     root: path.join(__dirname),
   },

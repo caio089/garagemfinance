@@ -6,6 +6,7 @@ import {
   inicioSemana,
   toDateString,
 } from "@/lib/format";
+import { calcularLucro } from "@/lib/financeiro";
 import type { Dia, DiaComResumo, Entrada, ResumoPeriodo } from "@/types";
 
 export async function buscarDiasFinalizados(): Promise<Dia[]> {
@@ -125,7 +126,7 @@ export async function buscarResumoPeriodo(
     totalEntradas,
     totalSaidas,
     faturamento: totalEntradas,
-    lucro: totalEntradas - totalSaidas,
+    lucro: calcularLucro(totalEntradas, totalSaidas),
     diasOperados: diasComResumo.length,
     lavagens: diasComResumo.reduce((s, d) => s + d.lavagens, 0),
     polimentos: diasComResumo.reduce((s, d) => s + d.polimentos, 0),

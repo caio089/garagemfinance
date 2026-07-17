@@ -1,3 +1,4 @@
+import { calcularCaixaFinal, calcularLucro } from "@/lib/financeiro";
 import { getSupabase } from "@/lib/supabase";
 import type { Dia, ResumoDia } from "@/types";
 
@@ -66,8 +67,8 @@ export async function calcularResumoDia(diaId: string): Promise<ResumoDia> {
   const totalEntradas = entradas?.reduce((sum, e) => sum + Number(e.valor), 0) ?? 0;
   const totalSaidas = saidas?.reduce((sum, s) => sum + Number(s.valor), 0) ?? 0;
   const caixaInicial = Number(dia.caixa_inicial);
-  const lucro = totalEntradas - totalSaidas;
-  const caixaFinal = caixaInicial + lucro;
+  const lucro = calcularLucro(totalEntradas, totalSaidas);
+  const caixaFinal = calcularCaixaFinal(caixaInicial, totalEntradas, totalSaidas);
 
   const lavagens = entradas?.filter((e) => e.tipo === "lavagem").length ?? 0;
   const polimentos = entradas?.filter((e) => e.polimento).length ?? 0;

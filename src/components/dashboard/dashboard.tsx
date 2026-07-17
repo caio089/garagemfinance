@@ -16,6 +16,7 @@ import {
 } from "@/services/entradas.service";
 import { buscarSaidasRecentes, totalSaidasDoDia } from "@/services/saidas.service";
 import type { Dia, DashboardMetrics, Entrada, Saida } from "@/types";
+import { calcularLucro } from "@/lib/financeiro";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { SupabaseWarning } from "@/components/shared/supabase-warning";
 
@@ -54,12 +55,11 @@ export function Dashboard() {
         setSaidas(saidasRecentes);
         setTodasEntradas(todasE);
 
-        const caixaInicial = Number(dia.caixa_inicial);
         setMetrics({
-          caixaInicial,
+          caixaInicial: Number(dia.caixa_inicial),
           totalEntradas: totalE,
           totalSaidas: totalS,
-          lucro: totalE - totalS,
+          lucro: calcularLucro(totalE, totalS),
         });
       } else {
         setEntradas([]);

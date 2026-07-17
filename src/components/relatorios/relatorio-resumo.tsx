@@ -1,3 +1,4 @@
+import { calcularCaixaFinal } from "@/lib/financeiro";
 import { formatCurrency } from "@/lib/format";
 import type { ResumoDia } from "@/types";
 import { Separator } from "@/components/ui/separator";
@@ -25,7 +26,11 @@ export function RelatorioResumo({
 }: RelatorioResumoProps) {
   const caixaFinal =
     resumo.caixaFinal ??
-    resumo.caixaInicial + resumo.totalEntradas - resumo.totalSaidas;
+    calcularCaixaFinal(
+      resumo.caixaInicial,
+      resumo.totalEntradas,
+      resumo.totalSaidas
+    );
 
   return (
     <div className="space-y-4">

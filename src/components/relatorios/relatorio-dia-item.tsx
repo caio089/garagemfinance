@@ -1,6 +1,7 @@
 "use client";
 
 import { motion } from "framer-motion";
+import { calcularLucro } from "@/lib/financeiro";
 import { formatCurrency, formatDate } from "@/lib/format";
 import type { DiaComResumo } from "@/types";
 import { ChevronRight, TrendingUp } from "lucide-react";
@@ -35,7 +36,9 @@ export function RelatorioDiaItem({ dia, onClick, index }: RelatorioDiaItemProps)
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <span className="text-sm font-bold text-emerald-400">
-          {formatCurrency(dia.totalEntradas - dia.totalSaidas)}
+          {formatCurrency(
+            calcularLucro(dia.totalEntradas, dia.totalSaidas)
+          )}
         </span>
         <ChevronRight className="h-4 w-4 text-zinc-600" />
       </div>
