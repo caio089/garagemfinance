@@ -14,6 +14,7 @@ interface RecentMovementsProps {
   entradas: Entrada[];
   saidas: Saida[];
   loading: boolean;
+  onChanged?: () => void;
 }
 
 function EmptyState({ message }: { message: string }) {
@@ -37,10 +38,14 @@ function EntradaItem({
     entrada.tipo === "outro"
       ? (() => {
           const desc = entrada.descricao?.trim();
-          if (!desc) return "Alimentação";
-          // Formato padrão: "Comida: Marmita"
+          if (!desc) return "Restaurante";
+          // "Mesa 1 · 2x PF, Coca..."
+          if (desc.startsWith("Mesa ")) {
+            const mesaParte = desc.split("·")[0]?.trim();
+            return mesaParte || "Restaurante";
+          }
           if (desc.includes(":")) {
-            return desc.split(":").slice(1).join(":").trim() || "Alimentação";
+            return desc.split(":").slice(1).join(":").trim() || "Restaurante";
           }
           return desc;
         })()
@@ -130,6 +135,7 @@ export function RecentMovements({
   entradas,
   saidas,
   loading,
+  onChanged,
 }: RecentMovementsProps) {
   const [entradaSelecionada, setEntradaSelecionada] = useState<Entrada | null>(
     null
@@ -208,6 +214,7 @@ export function RecentMovements({
           setEntradaSelecionada(null);
           setSaidaSelecionada(null);
         }}
+        onDeleted={onChanged}
       />
     </div>
   );

@@ -113,6 +113,7 @@ export function Dashboard() {
           entradas={entradas}
           saidas={saidas}
           loading={loading}
+          onChanged={carregarDados}
         />
       )}
 

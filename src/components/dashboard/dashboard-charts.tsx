@@ -59,7 +59,7 @@ export function DashboardCharts({
     servicosMap["Polimento"] = entradas.filter((e) => e.polimento).length;
   }
   if (entradas.some((e) => e.tipo === "outro")) {
-    servicosMap["Alimentação"] = entradas.filter((e) => e.tipo === "outro").length;
+    servicosMap["Restaurante"] = entradas.filter((e) => e.tipo === "outro").length;
   }
 
   const servicosData = Object.entries(servicosMap).map(([name, value]) => ({

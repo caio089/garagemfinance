@@ -52,3 +52,8 @@ export async function totalSaidasDoDia(diaId: string): Promise<number> {
   const saidas = await buscarSaidasDoDia(diaId);
   return saidas.reduce((sum, s) => sum + Number(s.valor), 0);
 }
+
+export async function excluirSaida(id: string): Promise<void> {
+  const { error } = await getSupabase().from("saidas").delete().eq("id", id);
+  if (error) throw error;
+}

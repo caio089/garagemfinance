@@ -156,6 +156,11 @@ export async function totalEntradasDoDia(diaId: string): Promise<number> {
   return entradas.reduce((sum, e) => sum + Number(e.valor), 0);
 }
 
+export async function excluirEntrada(id: string): Promise<void> {
+  const { error } = await getSupabase().from("entradas").delete().eq("id", id);
+  if (error) throw error;
+}
+
 export async function contarServicosDoDia(diaId: string) {
   const entradas = await buscarEntradasDoDia(diaId);
 

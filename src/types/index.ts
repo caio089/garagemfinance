@@ -127,6 +127,39 @@ export interface ItemAlimentacao {
   created_at: string;
 }
 
+export type MesaServicoStatus = "aberto" | "finalizado";
+
+export interface Mesa {
+  id: string;
+  numero: number;
+  created_at: string;
+}
+
+export interface MesaServico {
+  id: string;
+  mesa_id: string;
+  dia_id: string;
+  status: MesaServicoStatus;
+  created_at: string;
+  finalizado_at: string | null;
+}
+
+export interface MesaConsumo {
+  id: string;
+  servico_id: string;
+  item_alimentacao_id: string;
+  quantidade: number;
+  valor_unitario: number;
+  created_at: string;
+  item?: ItemAlimentacao;
+}
+
+export interface MesaComStatus extends Mesa {
+  servico: MesaServico | null;
+  total: number;
+  itensCount: number;
+}
+
 export const PRECO_CHAVES_LABELS: Record<PrecoLavagemChave, string> = {
   hatch: "Hatch/Sedan",
   sedan: "Sedan",
@@ -147,7 +180,7 @@ export const CATEGORIA_LABELS: Record<EntradaCategoria, string> = {
   sedan: "Sedan",
   suv: "SUV",
   camionete: "Camionete",
-  outro: "Alimentação",
+  outro: "Restaurante",
 };
 
 export const SAIDA_CATEGORIA_LABELS: Record<SaidaCategoria, string> = {

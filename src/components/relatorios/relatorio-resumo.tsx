@@ -85,7 +85,7 @@ export function RelatorioResumo({
           </div>
           <div>
             <p className="text-2xl font-bold text-white">{resumo.outros}</p>
-            <p className="text-xs text-zinc-500">Alimentação</p>
+            <p className="text-xs text-zinc-500">Restaurante</p>
           </div>
         </div>
       </div>

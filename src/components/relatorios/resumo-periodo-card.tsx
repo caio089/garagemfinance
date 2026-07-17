@@ -93,7 +93,7 @@ export function ResumoPeriodoCard({ resumo, titulo }: ResumoPeriodoCardProps) {
         </div>
         <div>
           <p className="text-lg font-bold text-white">{resumo.outros}</p>
-          <p className="text-xs text-zinc-500">Alimentação</p>
+          <p className="text-xs text-zinc-500">Restaurante</p>
         </div>
       </div>
     </motion.div>

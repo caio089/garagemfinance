@@ -9,6 +9,7 @@ import {
   parseCurrencyInput,
 } from "@/lib/format";
 import {
+  atualizarItemAlimentacao,
   criarItemAlimentacao,
   desativarItemAlimentacao,
   listarItensAlimentacao,
@@ -26,7 +27,7 @@ import {
   type PrecoLavagemChave,
 } from "@/types";
 import { toast } from "sonner";
-import { Coffee, Plus, Trash2, UtensilsCrossed } from "lucide-react";
+import { Check, Coffee, Pencil, Plus, Trash2, UtensilsCrossed, X } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const CHAVES_EDITAVEIS: PrecoLavagemChave[] = [
@@ -36,6 +37,13 @@ const CHAVES_EDITAVEIS: PrecoLavagemChave[] = [
   "polimento",
 ];
 
+interface EdicaoItem {
+  id: string;
+  nome: string;
+  tipo: ItemAlimentacaoTipo;
+  valor: string;
+}
+
 export function CadastroForm() {
   const [precos, setPrecos] = useState<PrecosLavagemMap | null>(null);
   const [precosInput, setPrecosInput] = useState<Record<string, string>>({});
@@ -43,10 +51,12 @@ export function CadastroForm() {
   const [loading, setLoading] = useState(true);
   const [salvandoPrecos, setSalvandoPrecos] = useState(false);
   const [salvandoItem, setSalvandoItem] = useState(false);
+  const [salvandoEdicao, setSalvandoEdicao] = useState(false);
 
   const [nomeItem, setNomeItem] = useState("");
   const [tipoItem, setTipoItem] = useState<ItemAlimentacaoTipo>("comida");
   const [valorItem, setValorItem] = useState("");
+  const [edicao, setEdicao] = useState<EdicaoItem | null>(null);
 
   const carregar = useCallback(async () => {
     setLoading(true);
@@ -120,9 +130,53 @@ export function CadastroForm() {
     }
   };
 
+  const iniciarEdicao = (item: ItemAlimentacao) => {
+    setEdicao({
+      id: item.id,
+      nome: item.nome,
+      tipo: item.tipo,
+      valor: item.valor.toFixed(2).replace(".", ","),
+    });
+  };
+
+  const cancelarEdicao = () => setEdicao(null);
+
+  const salvarEdicao = async () => {
+    if (!edicao) return;
+
+    const valor = parseCurrencyInput(edicao.valor);
+    if (!edicao.nome.trim()) {
+      toast.error("Informe o nome do item.");
+      return;
+    }
+    if (valor <= 0) {
+      toast.error("Informe um valor válido.");
+      return;
+    }
+
+    setSalvandoEdicao(true);
+    try {
+      await atualizarItemAlimentacao(edicao.id, {
+        nome: edicao.nome,
+        tipo: edicao.tipo,
+        valor,
+      });
+      toast.success("Item atualizado!");
+      setEdicao(null);
+      await carregar();
+    } catch (err) {
+      toast.error(
+        err instanceof Error ? err.message : "Erro ao atualizar item."
+      );
+    } finally {
+      setSalvandoEdicao(false);
+    }
+  };
+
   const removerItem = async (id: string) => {
     try {
       await desativarItemAlimentacao(id);
+      if (edicao?.id === id) setEdicao(null);
       toast.success("Item removido do catálogo.");
       await carregar();
     } catch {
@@ -184,9 +238,9 @@ export function CadastroForm() {
 
       <section className="space-y-4 border-t border-zinc-800 pt-6">
         <div className="text-center">
-          <h2 className="text-lg font-bold text-white">Alimentação</h2>
+          <h2 className="text-lg font-bold text-white">Cardápio</h2>
           <p className="text-sm text-zinc-500">
-            Cadastre bebidas, comidas e outros itens
+            Cadastre e edite nomes e preços dos itens
           </p>
         </div>
 
@@ -205,23 +259,23 @@ export function CadastroForm() {
           <div className="space-y-1.5">
             <Label className="text-zinc-400">Tipo</Label>
             <div className="grid grid-cols-3 gap-2">
-              {(Object.keys(ITEM_ALIMENTACAO_TIPO_LABELS) as ItemAlimentacaoTipo[]).map(
-                (tipo) => (
-                  <button
-                    key={tipo}
-                    type="button"
-                    onClick={() => setTipoItem(tipo)}
-                    className={cn(
-                      "rounded-xl border-2 py-2.5 text-xs font-bold transition-all",
-                      tipoItem === tipo
-                        ? "border-emerald-400 bg-emerald-500/15 text-emerald-400"
-                        : "border-zinc-800 text-zinc-400"
-                    )}
-                  >
-                    {ITEM_ALIMENTACAO_TIPO_LABELS[tipo]}
-                  </button>
-                )
-              )}
+              {(
+                Object.keys(ITEM_ALIMENTACAO_TIPO_LABELS) as ItemAlimentacaoTipo[]
+              ).map((tipo) => (
+                <button
+                  key={tipo}
+                  type="button"
+                  onClick={() => setTipoItem(tipo)}
+                  className={cn(
+                    "rounded-xl border-2 py-2.5 text-xs font-bold transition-all",
+                    tipoItem === tipo
+                      ? "border-emerald-400 bg-emerald-500/15 text-emerald-400"
+                      : "border-zinc-800 text-zinc-400"
+                  )}
+                >
+                  {ITEM_ALIMENTACAO_TIPO_LABELS[tipo]}
+                </button>
+              ))}
             </div>
           </div>
 
@@ -236,7 +290,9 @@ export function CadastroForm() {
                 inputMode="decimal"
                 placeholder="0,00"
                 value={valorItem}
-                onChange={(e) => setValorItem(maskCurrencyInput(e.target.value))}
+                onChange={(e) =>
+                  setValorItem(maskCurrencyInput(e.target.value))
+                }
                 className="h-12 w-full rounded-xl border-2 border-zinc-800 bg-zinc-950 pl-12 pr-4 text-right text-lg font-bold text-white focus:border-emerald-400 focus:outline-none"
               />
             </div>
@@ -258,35 +314,148 @@ export function CadastroForm() {
               Nenhum item cadastrado ainda
             </p>
           ) : (
-            itens.map((item) => (
-              <div
-                key={item.id}
-                className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-3"
-              >
-                <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
-                  {item.tipo === "bebida" ? (
-                    <Coffee className="h-5 w-5" />
-                  ) : (
-                    <UtensilsCrossed className="h-5 w-5" />
-                  )}
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="truncate font-semibold text-white">{item.nome}</p>
-                  <p className="text-xs text-zinc-500">
-                    {ITEM_ALIMENTACAO_TIPO_LABELS[item.tipo]} ·{" "}
-                    {formatCurrency(item.valor)}
-                  </p>
-                </div>
-                <button
-                  type="button"
-                  onClick={() => removerItem(item.id)}
-                  className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-rose-500/10 hover:text-rose-400"
-                  aria-label="Remover item"
+            itens.map((item) => {
+              const editando = edicao?.id === item.id;
+
+              if (editando && edicao) {
+                return (
+                  <div
+                    key={item.id}
+                    className="space-y-3 rounded-xl border-2 border-amber-400/40 bg-zinc-900 p-3"
+                  >
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-zinc-400">Nome</Label>
+                      <input
+                        type="text"
+                        value={edicao.nome}
+                        onChange={(e) =>
+                          setEdicao((prev) =>
+                            prev ? { ...prev, nome: e.target.value } : prev
+                          )
+                        }
+                        className="h-11 w-full rounded-xl border-2 border-zinc-800 bg-zinc-950 px-3 text-white focus:border-amber-400 focus:outline-none"
+                      />
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-zinc-400">Tipo</Label>
+                      <div className="grid grid-cols-3 gap-1.5">
+                        {(
+                          Object.keys(
+                            ITEM_ALIMENTACAO_TIPO_LABELS
+                          ) as ItemAlimentacaoTipo[]
+                        ).map((tipo) => (
+                          <button
+                            key={tipo}
+                            type="button"
+                            onClick={() =>
+                              setEdicao((prev) =>
+                                prev ? { ...prev, tipo } : prev
+                              )
+                            }
+                            className={cn(
+                              "rounded-lg border-2 py-2 text-[11px] font-bold",
+                              edicao.tipo === tipo
+                                ? "border-amber-400 bg-amber-400/15 text-amber-400"
+                                : "border-zinc-800 text-zinc-400"
+                            )}
+                          >
+                            {ITEM_ALIMENTACAO_TIPO_LABELS[tipo]}
+                          </button>
+                        ))}
+                      </div>
+                    </div>
+
+                    <div className="space-y-1.5">
+                      <Label className="text-xs text-zinc-400">Preço</Label>
+                      <div className="relative">
+                        <span className="absolute left-3 top-1/2 -translate-y-1/2 text-sm font-bold text-amber-400">
+                          R$
+                        </span>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={edicao.valor}
+                          onChange={(e) =>
+                            setEdicao((prev) =>
+                              prev
+                                ? {
+                                    ...prev,
+                                    valor: maskCurrencyInput(e.target.value),
+                                  }
+                                : prev
+                            )
+                          }
+                          className="h-11 w-full rounded-xl border-2 border-zinc-800 bg-zinc-950 pl-10 pr-3 text-right font-bold text-white focus:border-amber-400 focus:outline-none"
+                        />
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={cancelarEdicao}
+                        disabled={salvandoEdicao}
+                        className="h-11 rounded-xl border-zinc-700 bg-transparent text-zinc-300"
+                      >
+                        <X className="mr-1 h-4 w-4" />
+                        Cancelar
+                      </Button>
+                      <Button
+                        type="button"
+                        onClick={salvarEdicao}
+                        disabled={salvandoEdicao}
+                        className="h-11 rounded-xl bg-amber-400 font-bold text-black hover:bg-amber-300"
+                      >
+                        <Check className="mr-1 h-4 w-4" />
+                        {salvandoEdicao ? "Salvando..." : "Salvar"}
+                      </Button>
+                    </div>
+                  </div>
+                );
+              }
+
+              return (
+                <div
+                  key={item.id}
+                  className="flex items-center gap-3 rounded-xl border border-zinc-800 bg-zinc-900 px-3 py-3"
                 >
-                  <Trash2 className="h-4 w-4" />
-                </button>
-              </div>
-            ))
+                  <div className="flex h-10 w-10 items-center justify-center rounded-lg bg-emerald-500/10 text-emerald-400">
+                    {item.tipo === "bebida" ? (
+                      <Coffee className="h-5 w-5" />
+                    ) : (
+                      <UtensilsCrossed className="h-5 w-5" />
+                    )}
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="truncate font-semibold text-white">
+                      {item.nome}
+                    </p>
+                    <p className="text-xs text-zinc-500">
+                      {ITEM_ALIMENTACAO_TIPO_LABELS[item.tipo]} ·{" "}
+                      {formatCurrency(item.valor)}
+                    </p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => iniciarEdicao(item)}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-amber-400/10 hover:text-amber-400"
+                    aria-label="Editar item"
+                  >
+                    <Pencil className="h-4 w-4" />
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => removerItem(item.id)}
+                    className="flex h-9 w-9 items-center justify-center rounded-lg text-zinc-500 hover:bg-rose-500/10 hover:text-rose-400"
+                    aria-label="Remover item"
+                  >
+                    <Trash2 className="h-4 w-4" />
+                  </button>
+                </div>
+              );
+            })
           )}
         </div>
       </section>

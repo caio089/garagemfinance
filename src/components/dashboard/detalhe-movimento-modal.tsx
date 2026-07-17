@@ -1,13 +1,17 @@
 "use client";
 
+import { useState } from "react";
 import {
   Dialog,
   DialogContent,
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
+import { excluirEntrada } from "@/services/entradas.service";
+import { excluirSaida } from "@/services/saidas.service";
 import {
   CATEGORIA_LABELS,
   PRECO_POLIMENTO,
@@ -15,12 +19,14 @@ import {
   SAIDA_CATEGORIA_LABELS,
 } from "@/types";
 import type { Entrada, Saida } from "@/types";
-import { ArrowDownLeft, ArrowUpRight } from "lucide-react";
+import { toast } from "sonner";
+import { ArrowDownLeft, ArrowUpRight, Trash2 } from "lucide-react";
 
 interface DetalheMovimentoModalProps {
   entrada: Entrada | null;
   saida: Saida | null;
   onClose: () => void;
+  onDeleted?: () => void;
 }
 
 function Row({
@@ -35,7 +41,9 @@ function Row({
   return (
     <div className="flex items-start justify-between gap-4 text-sm">
       <span className="shrink-0 text-zinc-500">{label}</span>
-      <span className={`text-right font-medium text-white ${valueClassName ?? ""}`}>
+      <span
+        className={`text-right font-medium text-white ${valueClassName ?? ""}`}
+      >
         {value}
       </span>
     </div>
@@ -46,11 +54,39 @@ export function DetalheMovimentoModal({
   entrada,
   saida,
   onClose,
+  onDeleted,
 }: DetalheMovimentoModalProps) {
   const open = !!(entrada || saida);
+  const [confirmando, setConfirmando] = useState(false);
+  const [excluindo, setExcluindo] = useState(false);
+
+  const handleClose = () => {
+    setConfirmando(false);
+    onClose();
+  };
+
+  const handleExcluir = async () => {
+    setExcluindo(true);
+    try {
+      if (entrada) {
+        await excluirEntrada(entrada.id);
+        toast.success("Entrada apagada.");
+      } else if (saida) {
+        await excluirSaida(saida.id);
+        toast.success("Saída apagada.");
+      }
+      setConfirmando(false);
+      onClose();
+      onDeleted?.();
+    } catch {
+      toast.error("Não foi possível apagar. Tente novamente.");
+    } finally {
+      setExcluindo(false);
+    }
+  };
 
   return (
-    <Dialog open={open} onOpenChange={(v) => !v && onClose()}>
+    <Dialog open={open} onOpenChange={(v) => !v && handleClose()}>
       <DialogContent className="border-zinc-800 bg-zinc-900 text-white sm:max-w-md">
         {entrada && (
           <>
@@ -62,10 +98,20 @@ export function DetalheMovimentoModal({
                 <div>
                   <DialogTitle className="text-lg font-bold text-white">
                     {entrada.tipo === "outro"
-                      ? entrada.descricao?.includes(":")
-                        ? entrada.descricao.split(":").slice(1).join(":").trim() ||
-                          "Alimentação"
-                        : entrada.descricao || "Alimentação"
+                      ? (() => {
+                          const desc = entrada.descricao?.trim();
+                          if (!desc) return "Restaurante";
+                          if (desc.startsWith("Mesa ")) {
+                            return desc.split("·")[0]?.trim() || "Restaurante";
+                          }
+                          if (desc.includes(":")) {
+                            return (
+                              desc.split(":").slice(1).join(":").trim() ||
+                              "Restaurante"
+                            );
+                          }
+                          return desc;
+                        })()
                       : `Lavagem ${CATEGORIA_LABELS[entrada.categoria]}`}
                   </DialogTitle>
                   <p className="text-sm text-zinc-500">
@@ -188,6 +234,47 @@ export function DetalheMovimentoModal({
               </div>
             </div>
           </>
+        )}
+
+        {(entrada || saida) && (
+          <div className="pt-1">
+            {confirmando ? (
+              <div className="space-y-3 rounded-xl border border-rose-500/30 bg-rose-500/10 p-3">
+                <p className="text-center text-sm text-rose-200">
+                  Apagar este registro? Essa ação não pode ser desfeita.
+                </p>
+                <div className="grid grid-cols-2 gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    disabled={excluindo}
+                    onClick={() => setConfirmando(false)}
+                    className="h-11 rounded-xl border-zinc-700 bg-transparent text-white"
+                  >
+                    Cancelar
+                  </Button>
+                  <Button
+                    type="button"
+                    disabled={excluindo}
+                    onClick={handleExcluir}
+                    className="h-11 rounded-xl bg-rose-500 font-bold text-white hover:bg-rose-400"
+                  >
+                    {excluindo ? "Apagando..." : "Confirmar"}
+                  </Button>
+                </div>
+              </div>
+            ) : (
+              <Button
+                type="button"
+                variant="outline"
+                onClick={() => setConfirmando(true)}
+                className="h-11 w-full rounded-xl border-rose-500/40 bg-transparent font-semibold text-rose-400 hover:bg-rose-500/10 hover:text-rose-300"
+              >
+                <Trash2 className="mr-2 h-4 w-4" />
+                Apagar {entrada ? "entrada" : "saída"}
+              </Button>
+            )}
+          </div>
         )}
       </DialogContent>
     </Dialog>

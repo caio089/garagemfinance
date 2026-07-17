@@ -11,7 +11,6 @@ import {
   parseCurrencyInput,
 } from "@/lib/format";
 import { buscarDiaAberto } from "@/services/dias.service";
-import { listarItensAlimentacao } from "@/services/alimentacao.service";
 import {
   calcularValorBaseComPrecos,
   calcularValorEntradaComPrecos,
@@ -21,23 +20,14 @@ import {
   buscarPrecosLavagem,
   type PrecosLavagemMap,
 } from "@/services/precos.service";
-import { CATEGORIA_LABELS, ITEM_ALIMENTACAO_TIPO_LABELS } from "@/types";
-import type { EntradaCategoria, ItemAlimentacao } from "@/types";
+import { CATEGORIA_LABELS } from "@/types";
+import type { EntradaCategoria } from "@/types";
 import { toast } from "sonner";
-import {
-  AlertCircle,
-  Car,
-  Check,
-  Coffee,
-  Minus,
-  Plus,
-  Settings,
-  UtensilsCrossed,
-} from "lucide-react";
+import { AlertCircle, Car, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
-import Link from "next/link";
+import { RestauranteMesas } from "@/components/entrada/restaurante-mesas";
 
-type TipoServico = "lavagem" | "alimentacao";
+type TipoServico = "lavagem" | "restaurante";
 
 export function EntradaForm() {
   const router = useRouter();
@@ -48,22 +38,15 @@ export function EntradaForm() {
   const [placa, setPlaca] = useState("");
   const [modelo, setModelo] = useState("");
   const [descricao, setDescricao] = useState("");
-  const [itensSelecionados, setItensSelecionados] = useState<
-    Record<string, number>
-  >({});
   const [precos, setPrecos] = useState<PrecosLavagemMap | null>(null);
-  const [itens, setItens] = useState<ItemAlimentacao[]>([]);
   const [loading, setLoading] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [semDia, setSemDia] = useState(false);
 
   useEffect(() => {
-    Promise.all([buscarPrecosLavagem(), listarItensAlimentacao(true)])
-      .then(([p, i]) => {
-        setPrecos(p);
-        setItens(i);
-      })
-      .catch(() => toast.error("Erro ao carregar preços e itens."))
+    buscarPrecosLavagem()
+      .then(setPrecos)
+      .catch(() => toast.error("Erro ao carregar preços."))
       .finally(() => setCarregando(false));
   }, []);
 
@@ -80,88 +63,38 @@ export function EntradaForm() {
     ];
   }, [precos]);
 
-  const itensEscolhidos = useMemo(
-    () =>
-      itens
-        .filter((item) => (itensSelecionados[item.id] ?? 0) > 0)
-        .map((item) => ({
-          item,
-          quantidade: itensSelecionados[item.id],
-          subtotal: item.valor * itensSelecionados[item.id],
-        })),
-    [itens, itensSelecionados]
-  );
-
   const desconto =
     tipoServico === "lavagem" ? parseCurrencyInput(descontoInput) : 0;
 
-  const valorAlimentacao = itensEscolhidos.reduce(
-    (sum, row) => sum + row.subtotal,
-    0
-  );
-
   const valorBase =
-    !precos
+    !precos || tipoServico !== "lavagem"
       ? 0
-      : tipoServico === "alimentacao"
-        ? valorAlimentacao
-        : calcularValorBaseComPrecos("lavagem", categoria, polimento, precos);
+      : calcularValorBaseComPrecos("lavagem", categoria, polimento, precos);
 
   const valor =
-    !precos
+    !precos || tipoServico !== "lavagem"
       ? 0
-      : tipoServico === "alimentacao"
-        ? valorAlimentacao
-        : calcularValorEntradaComPrecos(
-            "lavagem",
-            categoria,
-            polimento,
-            precos,
-            desconto
-          );
-
-  const alterarQuantidade = (id: string, delta: number) => {
-    setItensSelecionados((prev) => {
-      const atual = prev[id] ?? 0;
-      const proximo = Math.max(0, Math.min(99, atual + delta));
-      if (proximo === 0) {
-        const { [id]: _, ...rest } = prev;
-        return rest;
-      }
-      return { ...prev, [id]: proximo };
-    });
-  };
-
-  const toggleItem = (id: string) => {
-    setItensSelecionados((prev) => {
-      if ((prev[id] ?? 0) > 0) {
-        const { [id]: _, ...rest } = prev;
-        return rest;
-      }
-      return { ...prev, [id]: 1 };
-    });
-  };
+      : calcularValorEntradaComPrecos(
+          "lavagem",
+          categoria,
+          polimento,
+          precos,
+          desconto
+        );
 
   const handleSubmit = async () => {
-    if (!precos) return;
+    if (!precos || tipoServico !== "lavagem") return;
 
-    if (tipoServico === "lavagem") {
-      if (!placa.trim()) {
-        toast.error("Informe a placa do carro.");
-        return;
-      }
-      if (!modelo.trim()) {
-        toast.error("Informe o modelo do carro.");
-        return;
-      }
-      if (desconto > valorBase) {
-        toast.error("O desconto não pode ser maior que o valor da lavagem.");
-        return;
-      }
+    if (!placa.trim()) {
+      toast.error("Informe a placa do carro.");
+      return;
     }
-
-    if (tipoServico === "alimentacao" && itensEscolhidos.length === 0) {
-      toast.error("Selecione pelo menos um item de alimentação.");
+    if (!modelo.trim()) {
+      toast.error("Informe o modelo do carro.");
+      return;
+    }
+    if (desconto > valorBase) {
+      toast.error("O desconto não pode ser maior que o valor da lavagem.");
       return;
     }
 
@@ -174,43 +107,17 @@ export function EntradaForm() {
         return;
       }
 
-      if (tipoServico === "alimentacao") {
-        const notaExtra = descricao.trim();
-        await Promise.all(
-          itensEscolhidos.map(({ item, quantidade, subtotal }) => {
-            const baseDesc = `${ITEM_ALIMENTACAO_TIPO_LABELS[item.tipo]}: ${item.nome}${
-              quantidade > 1 ? ` (x${quantidade})` : ""
-            }`;
-            return criarEntrada({
-              diaId: dia.id,
-              tipo: "outro",
-              categoria: "outro",
-              polimento: false,
-              valorPersonalizado: subtotal,
-              itemAlimentacaoId: item.id,
-              descricao: notaExtra ? `${baseDesc} · ${notaExtra}` : baseDesc,
-            });
-          })
-        );
-        toast.success(
-          itensEscolhidos.length === 1
-            ? "Entrada registrada!"
-            : `${itensEscolhidos.length} itens registrados!`
-        );
-      } else {
-        await criarEntrada({
-          diaId: dia.id,
-          tipo: "lavagem",
-          categoria,
-          polimento,
-          desconto,
-          placa,
-          modelo,
-          descricao: descricao || undefined,
-        });
-        toast.success("Entrada registrada!");
-      }
-
+      await criarEntrada({
+        diaId: dia.id,
+        tipo: "lavagem",
+        categoria,
+        polimento,
+        desconto,
+        placa,
+        modelo,
+        descricao: descricao || undefined,
+      });
+      toast.success("Entrada registrada!");
       router.push("/");
     } catch {
       toast.error("Erro ao registrar entrada.");
@@ -266,7 +173,7 @@ export function EntradaForm() {
           <button
             type="button"
             onClick={() => {
-              setTipoServico("alimentacao");
+              setTipoServico("restaurante");
               setPolimento(false);
               setDescontoInput("");
               setPlaca("");
@@ -274,16 +181,20 @@ export function EntradaForm() {
             }}
             className={cn(
               "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
-              tipoServico === "alimentacao"
+              tipoServico === "restaurante"
                 ? "border-emerald-400 bg-emerald-500/15 text-emerald-400 shadow-[0_0_20px_-8px_rgba(52,211,153,0.5)]"
                 : "border-zinc-800 bg-zinc-900 text-zinc-400"
             )}
           >
             <UtensilsCrossed className="h-7 w-7" />
-            <span className="text-sm font-bold">Alimentação</span>
+            <span className="text-sm font-bold">Restaurante</span>
           </button>
         </div>
       </div>
+
+      {tipoServico === "restaurante" && (
+        <RestauranteMesas onPrecisaDia={() => setSemDia(true)} />
+      )}
 
       {tipoServico === "lavagem" && (
         <motion.div
@@ -415,177 +326,44 @@ export function EntradaForm() {
               className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 px-4 text-center text-base text-white placeholder:text-zinc-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
             />
           </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="descricao" className="block text-center text-zinc-400">
+              Descrição (opcional)
+            </Label>
+            <input
+              id="descricao"
+              type="text"
+              placeholder="Ex: Cliente João lavagem completa"
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 px-4 text-center text-base text-white placeholder:text-zinc-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+            />
+          </div>
+
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-center">
+            <p className="text-sm text-zinc-400">Total a receber</p>
+            <p className="mt-1 text-3xl font-bold text-emerald-400">
+              {formatCurrency(valor)}
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">
+              {CATEGORIA_LABELS[categoria]}
+              {polimento ? " + Polimento" : ""}
+              {desconto > 0 ? ` − Desconto ${formatCurrency(desconto)}` : ""}
+            </p>
+          </div>
+
+          <motion.div whileTap={{ scale: 0.98 }}>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading}
+              className="h-14 w-full rounded-2xl bg-emerald-500 text-base font-bold text-black shadow-lg shadow-emerald-500/25 hover:bg-emerald-400"
+            >
+              {loading ? "Salvando..." : "Registrar entrada"}
+            </Button>
+          </motion.div>
         </motion.div>
       )}
-
-      {tipoServico === "alimentacao" && (
-        <motion.div
-          initial={{ opacity: 0, height: 0 }}
-          animate={{ opacity: 1, height: "auto" }}
-          className="space-y-3"
-        >
-          <Label className="block text-center text-zinc-400">
-            Escolha um ou mais itens
-          </Label>
-
-          {itens.length === 0 ? (
-            <div className="space-y-3 rounded-2xl border border-dashed border-zinc-700 bg-zinc-900/50 p-5 text-center">
-              <p className="text-sm text-zinc-400">
-                Nenhum item cadastrado. Cadastre bebidas e comidas primeiro.
-              </p>
-              <Link
-                href="/cadastro"
-                className="inline-flex items-center gap-2 rounded-xl bg-amber-400 px-4 py-2.5 text-sm font-bold text-black"
-              >
-                <Settings className="h-4 w-4" />
-                Ir para Cadastro
-              </Link>
-            </div>
-          ) : (
-            <div className="space-y-2">
-              {itens.map((item) => {
-                const qtd = itensSelecionados[item.id] ?? 0;
-                const selecionado = qtd > 0;
-
-                return (
-                  <div
-                    key={item.id}
-                    className={cn(
-                      "rounded-2xl border-2 px-3 py-3 transition-all",
-                      selecionado
-                        ? "border-emerald-400 bg-emerald-500/15"
-                        : "border-zinc-800 bg-zinc-900"
-                    )}
-                  >
-                    <button
-                      type="button"
-                      onClick={() => toggleItem(item.id)}
-                      className="flex w-full items-center gap-3 text-left"
-                    >
-                      <div
-                        className={cn(
-                          "flex h-10 w-10 items-center justify-center rounded-lg",
-                          selecionado
-                            ? "bg-emerald-500/20 text-emerald-400"
-                            : "bg-zinc-800 text-zinc-500"
-                        )}
-                      >
-                        {selecionado ? (
-                          <Check className="h-5 w-5" />
-                        ) : item.tipo === "bebida" ? (
-                          <Coffee className="h-5 w-5" />
-                        ) : (
-                          <UtensilsCrossed className="h-5 w-5" />
-                        )}
-                      </div>
-                      <div className="min-w-0 flex-1">
-                        <p
-                          className={cn(
-                            "font-semibold",
-                            selecionado ? "text-emerald-400" : "text-white"
-                          )}
-                        >
-                          {item.nome}
-                        </p>
-                        <p className="text-xs text-zinc-500">
-                          {ITEM_ALIMENTACAO_TIPO_LABELS[item.tipo]} ·{" "}
-                          {formatCurrency(item.valor)}
-                        </p>
-                      </div>
-                    </button>
-
-                    {selecionado && (
-                      <div className="mt-3 flex items-center justify-between border-t border-emerald-400/20 pt-3">
-                        <span className="text-xs text-zinc-400">Quantidade</span>
-                        <div className="flex items-center gap-3">
-                          <button
-                            type="button"
-                            onClick={() => alterarQuantidade(item.id, -1)}
-                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-zinc-800 text-white active:scale-95"
-                            aria-label="Diminuir"
-                          >
-                            <Minus className="h-4 w-4" />
-                          </button>
-                          <span className="w-6 text-center text-lg font-bold text-emerald-400">
-                            {qtd}
-                          </span>
-                          <button
-                            type="button"
-                            onClick={() => alterarQuantidade(item.id, 1)}
-                            className="flex h-9 w-9 items-center justify-center rounded-xl bg-emerald-500 text-black active:scale-95"
-                            aria-label="Aumentar"
-                          >
-                            <Plus className="h-4 w-4" />
-                          </button>
-                          <span className="min-w-16 text-right text-sm font-bold text-emerald-300">
-                            {formatCurrency(item.valor * qtd)}
-                          </span>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                );
-              })}
-            </div>
-          )}
-        </motion.div>
-      )}
-
-      <div className="space-y-2">
-        <Label htmlFor="descricao" className="block text-center text-zinc-400">
-          Descrição (opcional)
-        </Label>
-        <input
-          id="descricao"
-          type="text"
-          placeholder={
-            tipoServico === "alimentacao"
-              ? "Ex: Cliente João"
-              : "Ex: Cliente João lavagem completa"
-          }
-          value={descricao}
-          onChange={(e) => setDescricao(e.target.value)}
-          className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 px-4 text-center text-base text-white placeholder:text-zinc-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
-        />
-      </div>
-
-      <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-center">
-        <p className="text-sm text-zinc-400">Total a receber</p>
-        <p className="mt-1 text-3xl font-bold text-emerald-400">
-          {formatCurrency(valor)}
-        </p>
-        {tipoServico === "lavagem" && (
-          <p className="mt-1 text-xs text-zinc-500">
-            {CATEGORIA_LABELS[categoria]}
-            {polimento ? " + Polimento" : ""}
-            {desconto > 0 ? ` − Desconto ${formatCurrency(desconto)}` : ""}
-          </p>
-        )}
-        {tipoServico === "alimentacao" && itensEscolhidos.length > 0 && (
-          <p className="mt-1 text-xs text-zinc-500">
-            {itensEscolhidos
-              .map(
-                ({ item, quantidade }) =>
-                  `${quantidade > 1 ? `${quantidade}x ` : ""}${item.nome}`
-              )
-              .join(" · ")}
-          </p>
-        )}
-      </div>
-
-      <motion.div whileTap={{ scale: 0.98 }}>
-        <Button
-          onClick={handleSubmit}
-          disabled={
-            loading ||
-            (tipoServico === "alimentacao" &&
-              (itens.length === 0 || itensEscolhidos.length === 0))
-          }
-          className="h-14 w-full rounded-2xl bg-emerald-500 text-base font-bold text-black shadow-lg shadow-emerald-500/25 hover:bg-emerald-400"
-        >
-          {loading ? "Salvando..." : "Registrar entrada"}
-        </Button>
-      </motion.div>
     </div>
   );
 }
