@@ -10,6 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
+import { labelEntrada } from "@/lib/movimento-labels";
 import { excluirEntrada } from "@/services/entradas.service";
 import { excluirSaida } from "@/services/saidas.service";
 import {
@@ -17,10 +18,28 @@ import {
   PRECO_POLIMENTO,
   PRECOS_LAVAGEM,
   SAIDA_CATEGORIA_LABELS,
+  type EntradaCategoria,
 } from "@/types";
 import type { Entrada, Saida } from "@/types";
 import { toast } from "sonner";
 import { ArrowDownLeft, ArrowUpRight, Trash2 } from "lucide-react";
+
+function labelCategoria(categoria: string): string {
+  if (categoria in CATEGORIA_LABELS) {
+    return CATEGORIA_LABELS[categoria as EntradaCategoria];
+  }
+  return categoria || "Lavagem";
+}
+
+function valorBaseLavagem(entrada: Entrada): number {
+  const cat = entrada.categoria;
+  if (cat === "outro" || !(cat in PRECOS_LAVAGEM)) {
+    return Number(entrada.valor) + Number(entrada.desconto ?? 0);
+  }
+  return Number(
+    PRECOS_LAVAGEM[cat as keyof typeof PRECOS_LAVAGEM] ?? entrada.valor
+  );
+}
 
 interface DetalheMovimentoModalProps {
   entrada: Entrada | null;
@@ -97,22 +116,7 @@ export function DetalheMovimentoModal({
                 </div>
                 <div>
                   <DialogTitle className="text-lg font-bold text-white">
-                    {entrada.tipo === "outro"
-                      ? (() => {
-                          const desc = entrada.descricao?.trim();
-                          if (!desc) return "Restaurante";
-                          if (desc.startsWith("Mesa ")) {
-                            return desc.split("·")[0]?.trim() || "Restaurante";
-                          }
-                          if (desc.includes(":")) {
-                            return (
-                              desc.split(":").slice(1).join(":").trim() ||
-                              "Restaurante"
-                            );
-                          }
-                          return desc;
-                        })()
-                      : `Lavagem ${CATEGORIA_LABELS[entrada.categoria]}`}
+                    {labelEntrada(entrada)}
                   </DialogTitle>
                   <p className="text-sm text-zinc-500">
                     {formatDate(entrada.created_at.slice(0, 10))} ·{" "}
@@ -127,17 +131,11 @@ export function DetalheMovimentoModal({
                 <>
                   <Row
                     label="Categoria"
-                    value={CATEGORIA_LABELS[entrada.categoria]}
+                    value={labelCategoria(entrada.categoria)}
                   />
                   <Row
                     label="Valor base"
-                    value={formatCurrency(
-                      entrada.categoria === "outro"
-                        ? Number(entrada.valor)
-                        : (PRECOS_LAVAGEM[
-                            entrada.categoria as keyof typeof PRECOS_LAVAGEM
-                          ] ?? Number(entrada.valor))
-                    )}
+                    value={formatCurrency(valorBaseLavagem(entrada))}
                   />
                   <Row
                     label="Polimento"
