@@ -131,14 +131,14 @@ export function FinalizarDiaModal({
                 <Separator className="bg-zinc-700" />
                 <div className="flex justify-between">
                   <span className="font-semibold text-zinc-300">
-                    Lucro do dia
+                    Saldo diário
                   </span>
                   <span className="text-lg font-bold text-amber-400">
                     {formatCurrency(resumo.lucro)}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm">
-                  <span className="text-zinc-400">Caixa final</span>
+                  <span className="text-zinc-400">Valor em caixa</span>
                   <span className="font-medium text-white">
                     {formatCurrency(resumo.caixaFinal)}
                   </span>

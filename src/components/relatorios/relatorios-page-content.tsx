@@ -4,6 +4,7 @@ import { useCallback, useEffect, useState } from "react";
 import { ListaMovimentosDia } from "@/components/relatorios/lista-movimentos-dia";
 import { RelatorioDiaItem } from "@/components/relatorios/relatorio-dia-item";
 import { RelatorioDiaModal } from "@/components/relatorios/relatorio-dia-modal";
+import { RelatorioPeriodoCharts } from "@/components/relatorios/relatorio-periodo-charts";
 import { ResumoPeriodoCard } from "@/components/relatorios/resumo-periodo-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SupabaseWarning } from "@/components/shared/supabase-warning";
@@ -157,18 +158,20 @@ export function RelatoriosPageContent() {
   }
 
   return (
-    <div className="mx-auto w-full max-w-md space-y-5">
-      <div className="flex flex-col items-center gap-2 pt-2 text-center">
-        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-violet-500/15 text-violet-400">
-          <FileBarChart className="h-6 w-6" strokeWidth={2.5} />
+    <div className="mx-auto w-full max-w-md space-y-5 md:max-w-3xl lg:max-w-5xl">
+      <div className="flex flex-col items-center gap-2 pt-1 text-center lg:items-start lg:text-left">
+        <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-amber-400/15 text-amber-400">
+          <FileBarChart className="h-6 w-6" strokeWidth={2.25} />
         </div>
-        <h1 className="text-2xl font-bold text-white">Relatórios</h1>
+        <h1 className="text-display text-2xl font-bold text-white lg:text-3xl">
+          Relatórios
+        </h1>
         <p className="text-sm text-zinc-500">
           Movimentações do dia, semana e mês
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-1 rounded-2xl border border-zinc-800 bg-zinc-900 p-1">
+      <div className="grid grid-cols-3 gap-1 rounded-2xl border border-white/[0.06] bg-card/80 p-1 backdrop-blur-sm">
         {abas.map((item) => (
           <button
             key={item.id}
@@ -178,9 +181,9 @@ export function RelatoriosPageContent() {
               setReferencia(new Date());
             }}
             className={cn(
-              "rounded-xl py-2.5 text-sm font-bold transition-colors",
+              "rounded-xl py-2.5 text-sm font-bold transition-all",
               aba === item.id
-                ? "bg-violet-400 text-black"
+                ? "bg-amber-400 text-black shadow-md shadow-amber-400/20"
                 : "text-zinc-500 hover:text-zinc-300"
             )}
           >
@@ -191,8 +194,8 @@ export function RelatoriosPageContent() {
 
       {loading ? (
         <div className="space-y-3">
-          <Skeleton className="h-24 rounded-2xl bg-zinc-800" />
-          <Skeleton className="h-48 rounded-2xl bg-zinc-800" />
+          <Skeleton className="h-24 rounded-2xl bg-zinc-800/80" />
+          <Skeleton className="h-48 rounded-2xl bg-zinc-800/80" />
         </div>
       ) : aba === "dias" ? (
         !diaAtivo ? (
@@ -204,11 +207,11 @@ export function RelatoriosPageContent() {
           </div>
         ) : (
           <div className="space-y-4">
-            <div className="rounded-2xl border border-zinc-800 bg-zinc-900 p-4 text-center">
-              <p className="text-xs uppercase tracking-wider text-zinc-500">
+            <div className="surface-premium rounded-2xl p-4 text-center">
+              <p className="text-[11px] font-semibold uppercase tracking-[0.14em] text-zinc-500">
                 Dia selecionado
               </p>
-              <p className="mt-1 text-lg font-bold capitalize text-white">
+              <p className="text-display mt-1 text-lg font-bold capitalize text-white">
                 {formatDateLong(diaAtivo.data)}
               </p>
               <p className="mt-1 text-xs text-zinc-500">
@@ -233,10 +236,10 @@ export function RelatoriosPageContent() {
                         if (aberto) await selecionarDia(aberto);
                       }}
                       className={cn(
-                        "shrink-0 rounded-xl border-2 px-3 py-2 text-xs font-bold transition-colors",
+                        "shrink-0 rounded-xl border px-3 py-2 text-xs font-bold transition-colors",
                         diaAtivo.id === diaAbertoId
-                          ? "border-emerald-400 bg-emerald-500/15 text-emerald-400"
-                          : "border-zinc-800 bg-zinc-900 text-zinc-400"
+                          ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-400"
+                          : "border-white/[0.06] bg-card/80 text-zinc-400"
                       )}
                     >
                       Hoje (aberto)
@@ -248,10 +251,10 @@ export function RelatoriosPageContent() {
                       type="button"
                       onClick={() => selecionarDia(dia)}
                       className={cn(
-                        "shrink-0 rounded-xl border-2 px-3 py-2 text-xs font-bold transition-colors",
+                        "shrink-0 rounded-xl border px-3 py-2 text-xs font-bold transition-colors",
                         diaAtivo.id === dia.id
-                          ? "border-violet-400 bg-violet-400/15 text-violet-400"
-                          : "border-zinc-800 bg-zinc-900 text-zinc-400"
+                          ? "border-amber-400/40 bg-amber-400/15 text-amber-400"
+                          : "border-white/[0.06] bg-card/80 text-zinc-400"
                       )}
                     >
                       {formatDate(dia.data)}
@@ -262,7 +265,7 @@ export function RelatoriosPageContent() {
             )}
 
             {loadingLista ? (
-              <Skeleton className="h-64 rounded-2xl bg-zinc-800" />
+              <Skeleton className="h-64 rounded-2xl bg-zinc-800/80" />
             ) : (
               <ListaMovimentosDia
                 entradas={entradas}
@@ -277,22 +280,22 @@ export function RelatoriosPageContent() {
         )
       ) : (
         <div className="space-y-4">
-          <div className="flex items-center justify-between rounded-2xl border border-zinc-800 bg-zinc-900 px-3 py-3">
+          <div className="surface-premium flex items-center justify-between rounded-2xl px-3 py-3">
             <button
               type="button"
               onClick={() => navegarPeriodo(-1)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] text-zinc-400 hover:text-white"
               aria-label="Período anterior"
             >
               <ChevronLeft className="h-4 w-4" />
             </button>
-            <span className="text-sm font-medium capitalize text-zinc-300">
+            <span className="text-sm font-semibold capitalize text-zinc-200">
               {tituloPeriodo}
             </span>
             <button
               type="button"
               onClick={() => navegarPeriodo(1)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-zinc-800 text-zinc-400 hover:text-white"
+              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] text-zinc-400 hover:text-white"
               aria-label="Próximo período"
             >
               <ChevronRight className="h-4 w-4" />
@@ -300,10 +303,16 @@ export function RelatoriosPageContent() {
           </div>
 
           {resumoPeriodo && (
-            <ResumoPeriodoCard
-              resumo={resumoPeriodo}
-              titulo={aba === "semanal" ? "Resumo Semanal" : "Resumo Mensal"}
-            />
+            <>
+              <ResumoPeriodoCard
+                resumo={resumoPeriodo}
+                titulo={aba === "semanal" ? "Resumo Semanal" : "Resumo Mensal"}
+              />
+              <RelatorioPeriodoCharts
+                resumo={resumoPeriodo}
+                dias={diasPeriodo}
+              />
+            </>
           )}
 
           <div className="space-y-2">

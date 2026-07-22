@@ -20,8 +20,8 @@ interface RecentMovementsProps {
 
 function EmptyState({ message }: { message: string }) {
   return (
-    <div className="flex flex-col items-center gap-2 py-6 text-zinc-600">
-      <Inbox className="h-8 w-8" />
+    <div className="flex flex-col items-center gap-2 py-8 text-zinc-600">
+      <Inbox className="h-8 w-8 opacity-60" />
       <p className="text-sm">{message}</p>
     </div>
   );
@@ -50,14 +50,14 @@ function EntradaItem({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-2 py-2.5 text-left transition-colors hover:bg-zinc-800/40 active:bg-zinc-800/60"
+      className="flex w-full items-center justify-between gap-2 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.06] sm:px-3"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-emerald-500/10">
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-emerald-500/15">
           <ArrowUpRight className="h-4 w-4 text-emerald-400" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-white">{label}</p>
+          <p className="truncate text-sm font-semibold text-white">{label}</p>
           <p className="truncate text-xs text-zinc-500">{detalhes}</p>
           {entrada.descricao && (
             <p className="mt-0.5 truncate text-xs text-zinc-400">
@@ -67,7 +67,7 @@ function EntradaItem({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <span className="text-sm font-semibold text-emerald-400">
+        <span className="text-sm font-bold tabular-nums text-emerald-400">
           + {formatCurrency(Number(entrada.valor))}
         </span>
         <ChevronRight className="h-4 w-4 text-zinc-600" />
@@ -87,14 +87,14 @@ function SaidaItem({
     <button
       type="button"
       onClick={onClick}
-      className="flex w-full items-center justify-between gap-2 py-2.5 text-left transition-colors hover:bg-zinc-800/40 active:bg-zinc-800/60"
+      className="flex w-full items-center justify-between gap-2 rounded-xl px-2 py-2.5 text-left transition-colors hover:bg-white/[0.04] active:bg-white/[0.06] sm:px-3"
     >
       <div className="flex min-w-0 items-center gap-3">
-        <div className="flex h-8 w-8 shrink-0 items-center justify-center rounded-lg bg-red-500/10">
-          <ArrowDownLeft className="h-4 w-4 text-red-400" />
+        <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-xl bg-rose-500/15">
+          <ArrowDownLeft className="h-4 w-4 text-rose-400" />
         </div>
         <div className="min-w-0">
-          <p className="truncate text-sm font-medium text-white">
+          <p className="truncate text-sm font-semibold text-white">
             {SAIDA_CATEGORIA_LABELS[saida.categoria]}
           </p>
           <p className="truncate text-xs text-zinc-500">
@@ -108,7 +108,7 @@ function SaidaItem({
         </div>
       </div>
       <div className="flex shrink-0 items-center gap-1">
-        <span className="text-sm font-semibold text-red-400">
+        <span className="text-sm font-bold tabular-nums text-rose-400">
           - {formatCurrency(Number(saida.valor))}
         </span>
         <ChevronRight className="h-4 w-4 text-zinc-600" />
@@ -130,27 +130,28 @@ export function RecentMovements({
 
   if (loading) {
     return (
-      <div className="space-y-3">
-        <Skeleton className="h-48 rounded-2xl bg-zinc-800" />
-        <Skeleton className="h-48 rounded-2xl bg-zinc-800" />
+      <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
+        <Skeleton className="h-52 rounded-2xl bg-zinc-800/80" />
+        <Skeleton className="h-52 rounded-2xl bg-zinc-800/80" />
       </div>
     );
   }
 
   return (
-    <div className="space-y-4">
+    <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
         transition={{ delay: 0.2 }}
+        className="min-w-0"
       >
-        <Card className="border-zinc-800 bg-zinc-900">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-zinc-400">
+        <Card className="surface-premium border-0 ring-0">
+          <CardHeader className="pb-2 pt-5">
+            <CardTitle className="text-display text-sm font-semibold text-zinc-200">
               Últimas entradas
             </CardTitle>
           </CardHeader>
-          <CardContent className="divide-y divide-zinc-800 px-2 sm:px-4">
+          <CardContent className="space-y-0.5 px-2 pb-4 sm:px-3">
             {entradas.length === 0 ? (
               <EmptyState message="Nenhuma entrada registrada" />
             ) : (
@@ -167,17 +168,18 @@ export function RecentMovements({
       </motion.div>
 
       <motion.div
-        initial={{ opacity: 0, y: 20 }}
+        initial={{ opacity: 0, y: 18 }}
         animate={{ opacity: 1, y: 0 }}
-        transition={{ delay: 0.3 }}
+        transition={{ delay: 0.28 }}
+        className="min-w-0"
       >
-        <Card className="border-zinc-800 bg-zinc-900">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-semibold text-zinc-400">
+        <Card className="surface-premium border-0 ring-0">
+          <CardHeader className="pb-2 pt-5">
+            <CardTitle className="text-display text-sm font-semibold text-zinc-200">
               Últimas saídas
             </CardTitle>
           </CardHeader>
-          <CardContent className="divide-y divide-zinc-800 px-2 sm:px-4">
+          <CardContent className="space-y-0.5 px-2 pb-4 sm:px-3">
             {saidas.length === 0 ? (
               <EmptyState message="Nenhuma saída registrada" />
             ) : (

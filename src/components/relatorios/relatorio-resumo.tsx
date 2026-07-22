@@ -22,7 +22,7 @@ interface RelatorioResumoProps {
 export function RelatorioResumo({
   resumo,
   showCaixaInicial = true,
-  lucroLabel = "Lucro do dia",
+  lucroLabel = "Saldo diário",
 }: RelatorioResumoProps) {
   const caixaFinal =
     resumo.caixaFinal ??
@@ -63,7 +63,7 @@ export function RelatorioResumo({
           </span>
         </div>
         <div className="flex justify-between text-sm">
-          <span className="text-zinc-400">Caixa final</span>
+          <span className="text-zinc-400">Valor em caixa</span>
           <span className="font-medium text-white">
             {formatCurrency(caixaFinal)}
           </span>

@@ -61,7 +61,10 @@ export interface DashboardMetrics {
   caixaInicial: number;
   totalEntradas: number;
   totalSaidas: number;
-  lucro: number;
+  /** Entradas − saídas do dia */
+  saldoDiario: number;
+  /** Saldo diário + caixa inicial */
+  valorEmCaixa: number;
 }
 
 export type FiltroRelatorio = "dias" | "semanal" | "mensal";

@@ -3,64 +3,24 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { FileBarChart, Home, Minus, Plus, Settings } from "lucide-react";
+import { FileBarChart, Home, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
   {
-    href: "/entrada",
-    label: "Entrada",
-    icon: Plus,
-    activeBg: "bg-emerald-500",
-    activeText: "text-emerald-400",
-    idleBg: "bg-emerald-500/15",
-    idleText: "text-emerald-400",
-    ring: "ring-emerald-500/40",
-    bar: "bg-emerald-400",
-  },
-  {
     href: "/",
     label: "Início",
     icon: Home,
-    activeBg: "bg-amber-400",
-    activeText: "text-amber-400",
-    idleBg: "bg-zinc-800",
-    idleText: "text-zinc-300",
-    ring: "ring-amber-400/40",
-    bar: "bg-amber-400",
-  },
-  {
-    href: "/saida",
-    label: "Saída",
-    icon: Minus,
-    activeBg: "bg-rose-500",
-    activeText: "text-rose-400",
-    idleBg: "bg-rose-500/15",
-    idleText: "text-rose-400",
-    ring: "ring-rose-500/40",
-    bar: "bg-rose-400",
   },
   {
     href: "/relatorios",
     label: "Relatórios",
     icon: FileBarChart,
-    activeBg: "bg-violet-400",
-    activeText: "text-violet-400",
-    idleBg: "bg-violet-500/15",
-    idleText: "text-violet-400",
-    ring: "ring-violet-400/40",
-    bar: "bg-violet-400",
   },
   {
     href: "/cadastro",
     label: "Cadastro",
     icon: Settings,
-    activeBg: "bg-sky-400",
-    activeText: "text-sky-400",
-    idleBg: "bg-sky-500/15",
-    idleText: "text-sky-400",
-    ring: "ring-sky-400/40",
-    bar: "bg-sky-400",
   },
 ];
 
@@ -73,8 +33,8 @@ export function BottomNav() {
   };
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-zinc-800/80 bg-zinc-950/95 backdrop-blur-lg">
-      <div className="mx-auto flex max-w-lg items-end justify-around gap-0.5 px-1 pt-2 pb-[max(0.75rem,env(safe-area-inset-bottom))]">
+    <nav className="fixed bottom-0 left-0 right-0 z-50 border-t border-white/[0.06] bg-zinc-950/80 backdrop-blur-xl">
+      <div className="mx-auto flex max-w-lg items-end justify-around gap-1 px-3 pt-2.5 pb-[max(0.75rem,env(safe-area-inset-bottom))] md:max-w-5xl lg:max-w-6xl xl:max-w-7xl">
         {navItems.map((item) => {
           const active = isActive(item.href);
           const Icon = item.icon;
@@ -83,12 +43,12 @@ export function BottomNav() {
             <Link
               key={item.href}
               href={item.href}
-              className="relative flex flex-1 flex-col items-center gap-0.5 py-1"
+              className="relative flex flex-1 flex-col items-center gap-1.5 py-1"
             >
               {active && (
                 <motion.div
                   layoutId="nav-indicator"
-                  className={cn("absolute -top-2 h-1 w-7 rounded-full", item.bar)}
+                  className="absolute -top-2.5 h-1 w-10 rounded-full bg-amber-400"
                   transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 />
               )}
@@ -96,16 +56,16 @@ export function BottomNav() {
                 className={cn(
                   "flex h-11 w-11 items-center justify-center rounded-2xl transition-all",
                   active
-                    ? cn(item.activeBg, "text-black shadow-lg ring-2", item.ring)
-                    : cn(item.idleBg, item.idleText)
+                    ? "bg-amber-400 text-black shadow-lg shadow-amber-400/25"
+                    : "bg-white/[0.04] text-zinc-400 hover:bg-white/[0.07] hover:text-zinc-200"
                 )}
               >
-                <Icon className="h-5 w-5" strokeWidth={active ? 2.75 : 2.5} />
+                <Icon className="h-5 w-5" strokeWidth={active ? 2.5 : 2} />
               </div>
               <span
                 className={cn(
-                  "text-[9px] font-bold tracking-wide",
-                  active ? item.activeText : item.idleText
+                  "text-[10px] font-semibold tracking-wide",
+                  active ? "text-amber-400" : "text-zinc-500"
                 )}
               >
                 {item.label}

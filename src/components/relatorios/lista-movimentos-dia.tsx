@@ -88,7 +88,7 @@ export function ListaMovimentosDia({
         </div>
         <div>
           <p className="text-[10px] uppercase tracking-wide text-zinc-500">
-            Lucro
+            Saldo diário
           </p>
           <p
             className={cn(

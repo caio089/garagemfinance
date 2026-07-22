@@ -9,6 +9,7 @@ const nextConfig: NextConfig = {
   },
   // Libera acesso pelo IP da rede (celular / outros dispositivos)
   allowedDevOrigins: [
+    "192.168.0.6",
     "192.168.0.2",
     "127.0.0.1",
     "localhost",

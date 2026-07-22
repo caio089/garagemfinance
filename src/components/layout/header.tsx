@@ -14,11 +14,14 @@ export function Header({ diaAberto }: HeaderProps) {
     <motion.header
       initial={{ opacity: 0, y: -10 }}
       animate={{ opacity: 1, y: 0 }}
-      className="space-y-1"
+      className="space-y-2"
     >
       <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0 flex-1 space-y-1">
-          <h1 className="text-xl font-bold tracking-tight text-white sm:text-2xl">
+        <div className="min-w-0 flex-1 space-y-2">
+          <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400/70">
+            Garagem Federal
+          </p>
+          <h1 className="text-display text-2xl font-bold text-white sm:text-3xl lg:text-4xl">
             Garagem <span className="text-amber-400">Finance</span>
           </h1>
           <LiveClock />
@@ -27,8 +30,8 @@ export function Header({ diaAberto }: HeaderProps) {
           variant="outline"
           className={
             diaAberto
-              ? "mt-1 shrink-0 border-emerald-500/30 bg-emerald-500/10 text-emerald-400"
-              : "mt-1 shrink-0 border-zinc-700 bg-zinc-800 text-zinc-400"
+              ? "mt-1 shrink-0 border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-400"
+              : "mt-1 shrink-0 border-zinc-700/80 bg-zinc-800/60 px-2.5 py-1 text-zinc-400"
           }
         >
           <span

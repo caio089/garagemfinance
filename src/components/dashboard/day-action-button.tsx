@@ -17,25 +17,25 @@ export function DayActionButton({
 }: DayActionButtonProps) {
   return (
     <motion.div
-      initial={{ opacity: 0, scale: 0.95 }}
+      initial={{ opacity: 0, scale: 0.97 }}
       animate={{ opacity: 1, scale: 1 }}
-      whileTap={{ scale: 0.97 }}
+      whileTap={{ scale: 0.98 }}
     >
       {diaAberto ? (
         <Button
           onClick={onFinalizar}
-          className="h-16 w-full rounded-2xl bg-red-500 text-lg font-bold text-white shadow-lg shadow-red-500/20 hover:bg-red-400"
+          className="h-14 w-full rounded-2xl bg-rose-500/90 text-base font-bold tracking-wide text-white shadow-lg shadow-rose-500/20 hover:bg-rose-400 sm:h-16 sm:text-lg"
         >
-          <Square className="mr-2 h-5 w-5 fill-current" />
-          FINALIZAR DIA
+          <Square className="mr-2 h-4 w-4 fill-current sm:h-5 sm:w-5" />
+          Finalizar dia
         </Button>
       ) : (
         <Button
           onClick={onIniciar}
-          className="h-16 w-full rounded-2xl bg-amber-400 text-lg font-bold text-black shadow-lg shadow-amber-400/20 hover:bg-amber-300"
+          className="h-14 w-full rounded-2xl bg-amber-400 text-base font-bold tracking-wide text-black shadow-lg shadow-amber-400/25 hover:bg-amber-300 sm:h-16 sm:text-lg"
         >
-          <Play className="mr-2 h-5 w-5 fill-current" />
-          INICIAR DIA
+          <Play className="mr-2 h-4 w-4 fill-current sm:h-5 sm:w-5" />
+          Iniciar dia
         </Button>
       )}
     </motion.div>

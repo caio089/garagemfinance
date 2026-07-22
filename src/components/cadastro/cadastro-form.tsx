@@ -272,7 +272,7 @@ export function CadastroForm() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="space-y-8 lg:grid lg:grid-cols-2 lg:items-start lg:gap-8 lg:space-y-0">
       <section className="space-y-4">
         <div className="text-center">
           <h2 className="text-lg font-bold text-white">Serviços de lavagem</h2>
@@ -464,7 +464,7 @@ export function CadastroForm() {
         </div>
       </section>
 
-      <section className="space-y-4 border-t border-zinc-800 pt-6">
+      <section className="space-y-4 lg:border-t-0 lg:border-l lg:border-zinc-800 lg:pl-8 lg:pt-0 border-t border-zinc-800 pt-6">
         <div className="text-center">
           <h2 className="text-lg font-bold text-white">Cardápio</h2>
           <p className="text-sm text-zinc-500">
