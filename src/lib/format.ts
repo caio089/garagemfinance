@@ -72,6 +72,15 @@ export function parseCurrencyInput(value: string): number {
   return parseFloat(cleaned) || 0;
 }
 
+/** Converte número (ex.: 350.5) para o mesmo formato do input mascarado. */
+export function currencyNumberToInput(value: number): string {
+  const safe = Number.isFinite(value) ? Math.max(0, value) : 0;
+  return safe.toLocaleString("pt-BR", {
+    minimumFractionDigits: 2,
+    maximumFractionDigits: 2,
+  });
+}
+
 export function maskCurrencyInput(value: string): string {
   const digits = value.replace(/\D/g, "");
   const number = parseInt(digits || "0", 10) / 100;

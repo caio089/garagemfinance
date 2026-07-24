@@ -112,3 +112,19 @@ export async function buscarUltimosDias(limit = 7): Promise<Dia[]> {
   if (error) throw error;
   return data ?? [];
 }
+
+/** Último dia finalizado (com caixa_final), para sugerir o caixa inicial. */
+export async function buscarUltimoDiaFinalizado(): Promise<Dia | null> {
+  const { data, error } = await getSupabase()
+    .from("dias")
+    .select("*")
+    .eq("status", "finalizado")
+    .not("caixa_final", "is", null)
+    .order("data", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}

@@ -12,6 +12,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SupabaseWarning } from "@/components/shared/supabase-warning";
 import type { RelatorioExportData } from "@/lib/export/relatorio-export-shared";
 import {
+  formatCurrency,
   formatDate,
   formatDateLong,
   formatMonthYear,
@@ -20,6 +21,7 @@ import {
   inicioMes,
   inicioSemana,
 } from "@/lib/format";
+import { calcularCaixaFinal, calcularLucro } from "@/lib/financeiro";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { buscarDiaAberto } from "@/services/dias.service";
@@ -156,6 +158,16 @@ export function RelatoriosPageContent() {
 
   const podeExcluir = !!diaAtivo && diaAtivo.id === diaAbertoId;
 
+  const totalEntradasDia = entradas.reduce((s, e) => s + Number(e.valor), 0);
+  const totalSaidasDia = saidas.reduce((s, e) => s + Number(e.valor), 0);
+  const caixaInicialDia = diaAtivo ? Number(diaAtivo.caixa_inicial) : 0;
+  const caixaFinalDia = diaAtivo
+    ? diaAtivo.caixa_final != null
+      ? Number(diaAtivo.caixa_final)
+      : calcularCaixaFinal(caixaInicialDia, totalEntradasDia, totalSaidasDia)
+    : 0;
+  const saldoDia = calcularLucro(totalEntradasDia, totalSaidasDia);
+
   const exportDataDia: RelatorioExportData | null = diaAtivo
     ? {
         tipo: "diario",
@@ -243,6 +255,59 @@ export function RelatoriosPageContent() {
                   : `Finalizado · ${formatDate(diaAtivo.data)}`}
               </p>
             </div>
+
+            {!loadingLista && (
+              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="surface-premium rounded-2xl p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+                    Caixa inicial
+                  </p>
+                  <p className="mt-1 text-sm font-bold tabular-nums text-zinc-200">
+                    {formatCurrency(caixaInicialDia)}
+                  </p>
+                </div>
+                <div className="surface-premium rounded-2xl p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+                    Entradas
+                  </p>
+                  <p className="mt-1 text-sm font-bold tabular-nums text-emerald-400">
+                    {formatCurrency(totalEntradasDia)}
+                  </p>
+                </div>
+                <div className="surface-premium rounded-2xl p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wide text-zinc-500">
+                    Saídas
+                  </p>
+                  <p className="mt-1 text-sm font-bold tabular-nums text-rose-400">
+                    {formatCurrency(totalSaidasDia)}
+                  </p>
+                </div>
+                <div className="surface-premium rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-3 text-center">
+                  <p className="text-[10px] uppercase tracking-wide text-amber-400/80">
+                    {diaAtivo.caixa_final != null
+                      ? "Caixa final"
+                      : "Caixa previsto"}
+                  </p>
+                  <p className="mt-1 text-sm font-bold tabular-nums text-amber-300">
+                    {formatCurrency(caixaFinalDia)}
+                  </p>
+                  {diaAtivo.caixa_final != null && (
+                    <p className="mt-0.5 text-[10px] text-zinc-500">
+                      Após finalização
+                    </p>
+                  )}
+                </div>
+              </div>
+            )}
+
+            {diaAtivo.caixa_final != null && !loadingLista && (
+              <p className="text-center text-xs text-zinc-500">
+                Saldo do dia{" "}
+                <span className="font-semibold text-zinc-300">
+                  {formatCurrency(saldoDia)}
+                </span>
+              </p>
+            )}
 
             <div className="surface-premium rounded-2xl p-3">
               <ExportarRelatorioButtons

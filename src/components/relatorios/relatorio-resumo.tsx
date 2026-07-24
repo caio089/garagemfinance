@@ -62,9 +62,15 @@ export function RelatorioResumo({
             {formatCurrency(resumo.lucro)}
           </span>
         </div>
-        <div className="flex justify-between text-sm">
-          <span className="text-zinc-400">Valor em caixa</span>
-          <span className="font-medium text-white">
+        <Separator className="bg-zinc-700" />
+        <div className="flex justify-between">
+          <div>
+            <span className="font-semibold text-zinc-300">Caixa final</span>
+            <p className="text-[11px] text-zinc-500">
+              Após finalização do dia
+            </p>
+          </div>
+          <span className="text-lg font-bold tabular-nums text-white">
             {formatCurrency(caixaFinal)}
           </span>
         </div>

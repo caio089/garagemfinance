@@ -33,6 +33,14 @@ export function RelatorioDiaItem({ dia, onClick, index }: RelatorioDiaItemProps)
           Entradas {formatCurrency(dia.totalEntradas)} · Saídas{" "}
           {formatCurrency(dia.totalSaidas)}
         </p>
+        {dia.caixa_final != null && (
+          <p className="mt-0.5 text-xs text-zinc-400">
+            Caixa final{" "}
+            <span className="font-semibold tabular-nums text-zinc-300">
+              {formatCurrency(Number(dia.caixa_final))}
+            </span>
+          </p>
+        )}
       </div>
       <div className="flex shrink-0 items-center gap-1">
         <span className="text-sm font-bold text-emerald-400">
