@@ -9,13 +9,16 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog";
 import { Skeleton } from "@/components/ui/skeleton";
+import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
+import { ExportarRelatorioButtons } from "@/components/relatorios/exportar-relatorio-buttons";
 import { RelatorioResumo } from "@/components/relatorios/relatorio-resumo";
 import { ListaMovimentosDia } from "@/components/relatorios/lista-movimentos-dia";
-import { formatDate } from "@/lib/format";
+import type { RelatorioExportData } from "@/lib/export/relatorio-export-shared";
+import { formatDate, formatDateLong } from "@/lib/format";
 import { calcularResumoDia } from "@/services/dias.service";
 import { buscarEntradasDoDia } from "@/services/entradas.service";
 import { buscarSaidasDoDia } from "@/services/saidas.service";
-import type { Entrada, ResumoDia, Saida } from "@/types";
+import type { Dia, Entrada, ResumoDia, Saida } from "@/types";
 import { FileText } from "lucide-react";
 
 interface RelatorioDiaModalProps {
@@ -56,9 +59,28 @@ export function RelatorioDiaModal({ diaId, onClose }: RelatorioDiaModalProps) {
       .finally(() => setLoading(false));
   }, [diaId]);
 
+  let exportData: RelatorioExportData | null = null;
+  if (diaId && resumo) {
+    const dia: Dia = {
+      id: diaId,
+      data: resumo.data,
+      caixa_inicial: resumo.caixaInicial,
+      caixa_final: resumo.caixaFinal,
+      status: "finalizado",
+      created_at: "",
+    };
+    exportData = {
+      tipo: "diario",
+      dia,
+      entradas,
+      saidas,
+      tituloPeriodo: formatDateLong(resumo.data),
+    };
+  }
+
   return (
     <Dialog open={!!diaId} onOpenChange={(open) => !open && onClose()}>
-      <DialogContent className="max-h-[90vh] overflow-y-auto border-zinc-800 bg-zinc-900 text-white sm:max-w-md">
+      <DialogContent className="max-h-[90vh] overflow-y-auto border-zinc-800 bg-zinc-900 text-white sm:max-w-2xl lg:max-w-4xl">
         <DialogHeader>
           <div className="flex flex-col items-center gap-2 text-center">
             <FileText className="h-10 w-10 text-amber-400" />
@@ -82,7 +104,15 @@ export function RelatorioDiaModal({ diaId, onClose }: RelatorioDiaModalProps) {
             animate={{ opacity: 1, y: 0 }}
             className="space-y-5"
           >
+            <ExportarRelatorioButtons data={exportData} />
             <RelatorioResumo resumo={resumo} />
+            <DashboardCharts
+              totalEntradas={resumo.totalEntradas}
+              totalSaidas={resumo.totalSaidas}
+              entradas={entradas}
+              saidas={saidas}
+              loading={false}
+            />
             <ListaMovimentosDia
               entradas={entradas}
               saidas={saidas}

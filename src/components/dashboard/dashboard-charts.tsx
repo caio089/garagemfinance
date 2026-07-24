@@ -8,6 +8,7 @@ import {
   Bar,
   BarChart,
   Cell,
+  LabelList,
   Pie,
   PieChart,
   ResponsiveContainer,
@@ -17,7 +18,7 @@ import {
 } from "recharts";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
-import { formatCurrency } from "@/lib/format";
+import { formatCurrency, formatCurrencyCompact } from "@/lib/format";
 import { labelEntrada } from "@/lib/movimento-labels";
 import { SAIDA_CATEGORIA_LABELS, type Entrada, type Saida } from "@/types";
 
@@ -39,6 +40,12 @@ const TOOLTIP_STYLE = {
   boxShadow: "0 12px 40px rgba(0,0,0,0.45)",
   fontSize: 12,
 };
+
+const LABEL_STYLE = {
+  fill: "#e4e4e7",
+  fontSize: 11,
+  fontWeight: 600,
+} as const;
 
 interface ServicoAgg {
   name: string;
@@ -132,6 +139,10 @@ function agregarSaidas(saidas: Saida[]) {
     .sort((a, b) => b.valor - a.valor);
 }
 
+function formatBarLabel(value: unknown) {
+  return formatCurrency(Number(value) || 0);
+}
+
 function ChartShell({
   title,
   subtitle,
@@ -175,6 +186,34 @@ function EmptyChart({ message }: { message: string }) {
   );
 }
 
+function ValorResumo({
+  items,
+}: {
+  items: { label: string; value: string; tone?: string }[];
+}) {
+  return (
+    <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-3">
+      {items.map((item) => (
+        <div
+          key={item.label}
+          className="rounded-xl bg-white/[0.03] px-3 py-2"
+        >
+          <p className="truncate text-[10px] font-medium uppercase tracking-wider text-zinc-500">
+            {item.label}
+          </p>
+          <p
+            className={`text-display mt-0.5 truncate text-sm font-bold tabular-nums ${
+              item.tone ?? "text-white"
+            }`}
+          >
+            {item.value}
+          </p>
+        </div>
+      ))}
+    </div>
+  );
+}
+
 export function DashboardCharts({
   totalEntradas,
   totalSaidas,
@@ -204,6 +243,7 @@ export function DashboardCharts({
   const origemData = agregarOrigem(entradas);
   const horaData = agregarPorHora(entradas, saidas);
   const saidasCat = agregarSaidas(saidas);
+  const totalServicos = servicosData.reduce((acc, s) => acc + s.valor, 0);
 
   const hasFluxo = totalEntradas > 0 || totalSaidas > 0;
   const hasServicos = servicosData.length > 0;
@@ -214,6 +254,7 @@ export function DashboardCharts({
   const ticketMedio =
     entradas.length > 0 ? totalEntradas / entradas.length : 0;
   const polimentos = entradas.filter((e) => e.polimento).length;
+  const saldo = totalEntradas - totalSaidas;
 
   return (
     <div className="space-y-4 lg:space-y-5">
@@ -257,33 +298,66 @@ export function DashboardCharts({
           className="lg:col-span-2"
         >
           {hasFluxo ? (
-            <div className="h-[200px] lg:h-[240px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={fluxoData}
-                  barSize={64}
-                  margin={{ top: 8, right: 8, left: 8, bottom: 0 }}
-                >
-                  <XAxis
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    tick={{ fill: "#a1a1aa", fontSize: 12 }}
-                  />
-                  <YAxis hide />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(Number(value))}
-                    contentStyle={TOOLTIP_STYLE}
-                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                  />
-                  <Bar dataKey="valor" radius={[12, 12, 4, 4]}>
-                    {fluxoData.map((entry, index) => (
-                      <Cell key={index} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <>
+              <div className="h-[220px] lg:h-[260px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={fluxoData}
+                    barSize={72}
+                    margin={{ top: 28, right: 12, left: 8, bottom: 4 }}
+                  >
+                    <XAxis
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#a1a1aa", fontSize: 12 }}
+                    />
+                    <YAxis
+                      axisLine={false}
+                      tickLine={false}
+                      width={64}
+                      tick={{ fill: "#71717a", fontSize: 11 }}
+                      tickFormatter={(v) => formatCurrencyCompact(Number(v))}
+                    />
+                    <Tooltip
+                      formatter={(value) => formatCurrency(Number(value))}
+                      contentStyle={TOOLTIP_STYLE}
+                      cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    />
+                    <Bar dataKey="valor" radius={[12, 12, 4, 4]}>
+                      {fluxoData.map((entry, index) => (
+                        <Cell key={index} fill={entry.fill} />
+                      ))}
+                      <LabelList
+                        dataKey="valor"
+                        position="top"
+                        formatter={formatBarLabel}
+                        style={LABEL_STYLE}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <ValorResumo
+                items={[
+                  {
+                    label: "Entradas",
+                    value: formatCurrency(totalEntradas),
+                    tone: "text-emerald-400",
+                  },
+                  {
+                    label: "Saídas",
+                    value: formatCurrency(totalSaidas),
+                    tone: "text-rose-400",
+                  },
+                  {
+                    label: "Saldo",
+                    value: formatCurrency(saldo),
+                    tone: saldo >= 0 ? "text-amber-400" : "text-rose-400",
+                  },
+                ]}
+              />
+            </>
           ) : (
             <EmptyChart message="Sem movimentações para exibir" />
           )}
@@ -296,11 +370,11 @@ export function DashboardCharts({
           className="lg:col-span-2"
         >
           {hasHora ? (
-            <div className="h-[200px] lg:h-[240px]">
+            <div className="h-[220px] lg:h-[260px]">
               <ResponsiveContainer width="100%" height="100%">
                 <AreaChart
                   data={horaData}
-                  margin={{ top: 8, right: 8, left: 0, bottom: 0 }}
+                  margin={{ top: 12, right: 12, left: 4, bottom: 0 }}
                 >
                   <defs>
                     <linearGradient id="gradEntradas" x1="0" y1="0" x2="0" y2="1">
@@ -319,7 +393,13 @@ export function DashboardCharts({
                     tick={{ fill: "#71717a", fontSize: 11 }}
                     interval="preserveStartEnd"
                   />
-                  <YAxis hide />
+                  <YAxis
+                    axisLine={false}
+                    tickLine={false}
+                    width={64}
+                    tick={{ fill: "#71717a", fontSize: 11 }}
+                    tickFormatter={(v) => formatCurrencyCompact(Number(v))}
+                  />
                   <Tooltip
                     formatter={(value, name) => [
                       formatCurrency(Number(value)),
@@ -330,6 +410,7 @@ export function DashboardCharts({
                   <Area
                     type="monotone"
                     dataKey="entradas"
+                    name="Entradas"
                     stroke="#34d399"
                     strokeWidth={2.5}
                     fill="url(#gradEntradas)"
@@ -337,6 +418,7 @@ export function DashboardCharts({
                   <Area
                     type="monotone"
                     dataKey="saidas"
+                    name="Saídas"
                     stroke="#fb7185"
                     strokeWidth={2}
                     fill="url(#gradSaidas)"
@@ -356,7 +438,7 @@ export function DashboardCharts({
         >
           {hasServicos ? (
             <div className="flex items-center gap-3">
-              <ResponsiveContainer width="44%" height={170}>
+              <ResponsiveContainer width="44%" height={180}>
                 <PieChart>
                   <Pie
                     data={servicosData}
@@ -368,6 +450,12 @@ export function DashboardCharts({
                     dataKey="valor"
                     nameKey="name"
                     stroke="none"
+                    label={({ percent }) =>
+                      percent && percent >= 0.08
+                        ? `${Math.round(percent * 100)}%`
+                        : ""
+                    }
+                    labelLine={false}
                   >
                     {servicosData.map((_, index) => (
                       <Cell
@@ -391,27 +479,34 @@ export function DashboardCharts({
               </ResponsiveContainer>
 
               <div className="flex min-w-0 flex-1 flex-col gap-2.5">
-                {servicosData.slice(0, 5).map((item, index) => (
-                  <div
-                    key={item.name}
-                    className="flex min-w-0 items-start gap-2.5"
-                  >
+                {servicosData.slice(0, 5).map((item, index) => {
+                  const pct =
+                    totalServicos > 0
+                      ? Math.round((item.valor / totalServicos) * 100)
+                      : 0;
+                  return (
                     <div
-                      className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
-                      style={{
-                        backgroundColor: COLORS[index % COLORS.length],
-                      }}
-                    />
-                    <div className="min-w-0 flex-1">
-                      <p className="truncate text-sm font-semibold text-white">
-                        {item.name}
-                      </p>
-                      <p className="text-xs tabular-nums text-zinc-400">
-                        {item.quantidade} · {formatCurrency(item.valor)}
-                      </p>
+                      key={item.name}
+                      className="flex min-w-0 items-start gap-2.5"
+                    >
+                      <div
+                        className="mt-1.5 h-2.5 w-2.5 shrink-0 rounded-full"
+                        style={{
+                          backgroundColor: COLORS[index % COLORS.length],
+                        }}
+                      />
+                      <div className="min-w-0 flex-1">
+                        <p className="truncate text-sm font-semibold text-white">
+                          {item.name}
+                        </p>
+                        <p className="text-xs tabular-nums text-zinc-400">
+                          {item.quantidade} un. · {formatCurrency(item.valor)} ·{" "}
+                          {pct}%
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                ))}
+                  );
+                })}
               </div>
             </div>
           ) : (
@@ -425,45 +520,66 @@ export function DashboardCharts({
           delay={0.24}
         >
           {hasOrigem ? (
-            <div className="h-[170px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={origemData}
-                  layout="vertical"
-                  margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
-                  barSize={28}
-                >
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    width={88}
-                    tick={{ fill: "#a1a1aa", fontSize: 12 }}
-                  />
-                  <Tooltip
-                    formatter={(value, _name, item) => {
-                      const q = (item?.payload as { quantidade?: number })
-                        ?.quantidade;
-                      return [
-                        `${formatCurrency(Number(value))}${
-                          q != null ? ` · ${q} mov.` : ""
-                        }`,
-                        "Valor",
-                      ];
-                    }}
-                    contentStyle={TOOLTIP_STYLE}
-                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                  />
-                  <Bar dataKey="valor" radius={[0, 10, 10, 0]}>
-                    {origemData.map((entry, index) => (
-                      <Cell key={index} fill={entry.fill} />
-                    ))}
-                  </Bar>
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <>
+              <div className="h-[190px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={origemData}
+                    layout="vertical"
+                    margin={{ top: 4, right: 72, left: 8, bottom: 4 }}
+                    barSize={28}
+                  >
+                    <XAxis
+                      type="number"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#71717a", fontSize: 11 }}
+                      tickFormatter={(v) => formatCurrencyCompact(Number(v))}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      width={88}
+                      tick={{ fill: "#a1a1aa", fontSize: 12 }}
+                    />
+                    <Tooltip
+                      formatter={(value, _name, item) => {
+                        const q = (item?.payload as { quantidade?: number })
+                          ?.quantidade;
+                        return [
+                          `${formatCurrency(Number(value))}${
+                            q != null ? ` · ${q} mov.` : ""
+                          }`,
+                          "Valor",
+                        ];
+                      }}
+                      contentStyle={TOOLTIP_STYLE}
+                      cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    />
+                    <Bar dataKey="valor" radius={[0, 10, 10, 0]}>
+                      {origemData.map((entry, index) => (
+                        <Cell key={index} fill={entry.fill} />
+                      ))}
+                      <LabelList
+                        dataKey="valor"
+                        position="right"
+                        formatter={formatBarLabel}
+                        style={LABEL_STYLE}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <ValorResumo
+                items={origemData.map((o) => ({
+                  label: `${o.name} (${o.quantidade})`,
+                  value: formatCurrency(o.valor),
+                  tone: o.name === "Lavagem" ? "text-amber-400" : "text-emerald-400",
+                }))}
+              />
+            </>
           ) : (
             <EmptyChart message="Sem receita registrada" />
           )}
@@ -476,32 +592,54 @@ export function DashboardCharts({
           className="lg:col-span-2"
         >
           {hasSaidasCat ? (
-            <div className="h-[180px] lg:h-[200px]">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart
-                  data={saidasCat}
-                  layout="vertical"
-                  margin={{ top: 4, right: 16, left: 8, bottom: 4 }}
-                  barSize={22}
-                >
-                  <XAxis type="number" hide />
-                  <YAxis
-                    type="category"
-                    dataKey="name"
-                    axisLine={false}
-                    tickLine={false}
-                    width={100}
-                    tick={{ fill: "#a1a1aa", fontSize: 12 }}
-                  />
-                  <Tooltip
-                    formatter={(value) => formatCurrency(Number(value))}
-                    contentStyle={TOOLTIP_STYLE}
-                    cursor={{ fill: "rgba(255,255,255,0.03)" }}
-                  />
-                  <Bar dataKey="valor" fill="#fb7185" radius={[0, 10, 10, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
-            </div>
+            <>
+              <div className="h-[200px] lg:h-[220px]">
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart
+                    data={saidasCat}
+                    layout="vertical"
+                    margin={{ top: 4, right: 80, left: 8, bottom: 4 }}
+                    barSize={22}
+                  >
+                    <XAxis
+                      type="number"
+                      axisLine={false}
+                      tickLine={false}
+                      tick={{ fill: "#71717a", fontSize: 11 }}
+                      tickFormatter={(v) => formatCurrencyCompact(Number(v))}
+                    />
+                    <YAxis
+                      type="category"
+                      dataKey="name"
+                      axisLine={false}
+                      tickLine={false}
+                      width={100}
+                      tick={{ fill: "#a1a1aa", fontSize: 12 }}
+                    />
+                    <Tooltip
+                      formatter={(value) => formatCurrency(Number(value))}
+                      contentStyle={TOOLTIP_STYLE}
+                      cursor={{ fill: "rgba(255,255,255,0.03)" }}
+                    />
+                    <Bar dataKey="valor" fill="#fb7185" radius={[0, 10, 10, 0]}>
+                      <LabelList
+                        dataKey="valor"
+                        position="right"
+                        formatter={formatBarLabel}
+                        style={LABEL_STYLE}
+                      />
+                    </Bar>
+                  </BarChart>
+                </ResponsiveContainer>
+              </div>
+              <ValorResumo
+                items={saidasCat.slice(0, 3).map((s) => ({
+                  label: s.name,
+                  value: formatCurrency(s.valor),
+                  tone: "text-rose-400",
+                }))}
+              />
+            </>
           ) : (
             <EmptyChart message="Nenhuma saída registrada" />
           )}

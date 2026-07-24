@@ -5,6 +5,17 @@ export function formatCurrency(value: number): string {
   }).format(value);
 }
 
+/** Formato curto para eixos/labels de gráficos (ex.: R$ 1,2 mil). */
+export function formatCurrencyCompact(value: number): string {
+  const n = Number(value) || 0;
+  if (Math.abs(n) >= 1000) {
+    return `R$ ${(n / 1000).toLocaleString("pt-BR", {
+      maximumFractionDigits: 1,
+    })} mil`;
+  }
+  return formatCurrency(n);
+}
+
 export function formatDate(date: string | Date): string {
   const d = typeof date === "string" ? new Date(date + "T12:00:00") : date;
   return new Intl.DateTimeFormat("pt-BR", {

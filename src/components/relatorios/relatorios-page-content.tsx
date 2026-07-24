@@ -1,6 +1,8 @@
 "use client";
 
 import { useCallback, useEffect, useState } from "react";
+import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
+import { ExportarRelatorioButtons } from "@/components/relatorios/exportar-relatorio-buttons";
 import { ListaMovimentosDia } from "@/components/relatorios/lista-movimentos-dia";
 import { RelatorioDiaItem } from "@/components/relatorios/relatorio-dia-item";
 import { RelatorioDiaModal } from "@/components/relatorios/relatorio-dia-modal";
@@ -8,6 +10,7 @@ import { RelatorioPeriodoCharts } from "@/components/relatorios/relatorio-period
 import { ResumoPeriodoCard } from "@/components/relatorios/resumo-periodo-card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SupabaseWarning } from "@/components/shared/supabase-warning";
+import type { RelatorioExportData } from "@/lib/export/relatorio-export-shared";
 import {
   formatDate,
   formatDateLong,
@@ -153,6 +156,26 @@ export function RelatoriosPageContent() {
 
   const podeExcluir = !!diaAtivo && diaAtivo.id === diaAbertoId;
 
+  const exportDataDia: RelatorioExportData | null = diaAtivo
+    ? {
+        tipo: "diario",
+        dia: diaAtivo,
+        entradas,
+        saidas,
+        tituloPeriodo: formatDateLong(diaAtivo.data),
+      }
+    : null;
+
+  const exportDataPeriodo: RelatorioExportData | null =
+    resumoPeriodo && (aba === "semanal" || aba === "mensal")
+      ? {
+          tipo: aba,
+          resumo: resumoPeriodo,
+          dias: diasPeriodo,
+          tituloPeriodo,
+        }
+      : null;
+
   if (!isSupabaseConfigured()) {
     return <SupabaseWarning />;
   }
@@ -221,6 +244,13 @@ export function RelatoriosPageContent() {
               </p>
             </div>
 
+            <div className="surface-premium rounded-2xl p-3">
+              <ExportarRelatorioButtons
+                data={exportDataDia}
+                disabled={loadingLista}
+              />
+            </div>
+
             {(diaAbertoId || diasHistorico.length > 0) && (
               <div className="space-y-2">
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
@@ -267,14 +297,29 @@ export function RelatoriosPageContent() {
             {loadingLista ? (
               <Skeleton className="h-64 rounded-2xl bg-zinc-800/80" />
             ) : (
-              <ListaMovimentosDia
-                entradas={entradas}
-                saidas={saidas}
-                permitirExcluir={podeExcluir}
-                onChanged={() => {
-                  if (diaAtivo) void carregarMovimentos(diaAtivo.id);
-                }}
-              />
+              <>
+                <DashboardCharts
+                  totalEntradas={entradas.reduce(
+                    (acc, e) => acc + Number(e.valor),
+                    0
+                  )}
+                  totalSaidas={saidas.reduce(
+                    (acc, s) => acc + Number(s.valor),
+                    0
+                  )}
+                  entradas={entradas}
+                  saidas={saidas}
+                  loading={false}
+                />
+                <ListaMovimentosDia
+                  entradas={entradas}
+                  saidas={saidas}
+                  permitirExcluir={podeExcluir}
+                  onChanged={() => {
+                    if (diaAtivo) void carregarMovimentos(diaAtivo.id);
+                  }}
+                />
+              </>
             )}
           </div>
         )
@@ -304,6 +349,9 @@ export function RelatoriosPageContent() {
 
           {resumoPeriodo && (
             <>
+              <div className="surface-premium rounded-2xl p-3">
+                <ExportarRelatorioButtons data={exportDataPeriodo} />
+              </div>
               <ResumoPeriodoCard
                 resumo={resumoPeriodo}
                 titulo={aba === "semanal" ? "Resumo Semanal" : "Resumo Mensal"}
