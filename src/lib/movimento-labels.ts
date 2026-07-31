@@ -11,11 +11,21 @@ export function labelEntrada(entrada: Entrada): string {
     }
 
     const cat = entrada.categoria as EntradaCategoria;
-    if (cat in CATEGORIA_LABELS && cat !== "outro") {
+    if (cat in CATEGORIA_LABELS && cat !== "outro" && cat !== "avulsa") {
       return `Lavagem ${CATEGORIA_LABELS[cat]}`;
     }
 
     return "Lavagem";
+  }
+
+  if (entrada.tipo === "avulsa" || entrada.categoria === "avulsa") {
+    const desc = entrada.descricao?.trim();
+    if (desc?.startsWith("Avulsa:")) {
+      const resto = desc.slice("Avulsa:".length).trim();
+      return resto ? `Avulsa · ${resto}` : "Entrada avulsa";
+    }
+    if (desc && desc !== "Entrada avulsa") return `Avulsa · ${desc}`;
+    return "Entrada avulsa";
   }
 
   const desc = entrada.descricao?.trim();

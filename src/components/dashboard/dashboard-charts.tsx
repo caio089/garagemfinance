@@ -64,7 +64,9 @@ function agregarServicos(entradas: Entrada[]): ServicoAgg[] {
     const name =
       entrada.tipo === "lavagem"
         ? nomeServicoLavagem(entrada)
-        : "Restaurante";
+        : entrada.tipo === "avulsa" || entrada.categoria === "avulsa"
+          ? "Entrada avulsa"
+          : "Restaurante";
 
     const atual = map.get(name) ?? { name, quantidade: 0, valor: 0 };
     atual.quantidade += 1;
@@ -78,14 +80,19 @@ function agregarServicos(entradas: Entrada[]): ServicoAgg[] {
 function agregarOrigem(entradas: Entrada[]) {
   let lavagem = 0;
   let restaurante = 0;
+  let avulsa = 0;
   let qLavagem = 0;
   let qRestaurante = 0;
+  let qAvulsa = 0;
 
   for (const e of entradas) {
     const v = Number(e.valor);
     if (e.tipo === "lavagem") {
       lavagem += v;
       qLavagem += 1;
+    } else if (e.tipo === "avulsa" || e.categoria === "avulsa") {
+      avulsa += v;
+      qAvulsa += 1;
     } else {
       restaurante += v;
       qRestaurante += 1;
@@ -99,6 +106,12 @@ function agregarOrigem(entradas: Entrada[]) {
       valor: restaurante,
       quantidade: qRestaurante,
       fill: "#34d399",
+    },
+    {
+      name: "Avulsa",
+      valor: avulsa,
+      quantidade: qAvulsa,
+      fill: "#60a5fa",
     },
   ].filter((i) => i.valor > 0);
 }

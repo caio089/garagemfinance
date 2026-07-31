@@ -8,6 +8,7 @@ import { formatCurrency, formatDate, formatDateLong, formatTime } from "@/lib/fo
 import { labelEntrada } from "@/lib/movimento-labels";
 import {
   contarServicos,
+  labelTipoEntradaExport,
   nomeArquivoRelatorio,
   textoExplicativo,
   totalEntradas,
@@ -259,7 +260,7 @@ function exportarPdfDiario(data: Extract<RelatorioExportData, { tipo: "diario" }
       data.entradas.length > 0
         ? data.entradas.map((e) => [
             formatTime(e.created_at),
-            e.tipo === "lavagem" ? "Lavagem" : "Restaurante",
+            labelTipoEntradaExport(e.tipo),
             labelEntrada(e) + (e.polimento ? " + polimento" : ""),
             e.placa ?? "—",
             formatCurrency(Number(e.valor)),

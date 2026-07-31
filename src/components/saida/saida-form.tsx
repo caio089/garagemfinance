@@ -11,17 +11,25 @@ import { criarSaida } from "@/services/saidas.service";
 import { SAIDA_CATEGORIA_LABELS } from "@/types";
 import type { SaidaCategoria } from "@/types";
 import { toast } from "sonner";
-import { AlertCircle, ChefHat, Droplets, Users } from "lucide-react";
+import { AlertCircle, ChefHat, Droplets, Users, Wrench, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const categorias: {
   value: SaidaCategoria;
   label: string;
+  hint?: string;
   icon: typeof ChefHat;
 }[] = [
   { value: "cozinha", label: "Cozinha", icon: ChefHat },
   { value: "funcionario", label: "Funcionário", icon: Users },
   { value: "lava_jato", label: "Lava-jato", icon: Droplets },
+  {
+    value: "custos_operacionais",
+    label: "Custos operacionais",
+    hint: "Água, luz, internet...",
+    icon: Zap,
+  },
+  { value: "manutencao", label: "Manutenção", icon: Wrench },
 ];
 
 export function SaidaForm() {
@@ -118,14 +126,21 @@ export function SaidaForm() {
                 >
                   <Icon className="h-5 w-5" />
                 </div>
-                <span
-                  className={cn(
-                    "text-base font-semibold",
-                    categoria === cat.value ? "text-rose-400" : "text-white"
+                <div className="min-w-0 flex-1 text-left">
+                  <span
+                    className={cn(
+                      "block text-base font-semibold",
+                      categoria === cat.value ? "text-rose-400" : "text-white"
+                    )}
+                  >
+                    {SAIDA_CATEGORIA_LABELS[cat.value]}
+                  </span>
+                  {cat.hint && (
+                    <span className="mt-0.5 block text-xs text-zinc-500">
+                      {cat.hint}
+                    </span>
                   )}
-                >
-                  {SAIDA_CATEGORIA_LABELS[cat.value]}
-                </span>
+                </div>
               </button>
             );
           })}

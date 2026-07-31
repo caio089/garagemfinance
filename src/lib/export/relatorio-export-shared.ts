@@ -43,7 +43,14 @@ export function contarServicos(entradas: Entrada[]) {
     lavagens: entradas.filter((e) => e.tipo === "lavagem").length,
     polimentos: entradas.filter((e) => e.polimento).length,
     restaurante: entradas.filter((e) => e.tipo === "outro").length,
+    avulsas: entradas.filter((e) => e.tipo === "avulsa").length,
   };
+}
+
+export function labelTipoEntradaExport(tipo: Entrada["tipo"]): string {
+  if (tipo === "lavagem") return "Lavagem";
+  if (tipo === "avulsa") return "Avulsa";
+  return "Restaurante";
 }
 
 export function nomeArquivoRelatorio(
@@ -61,7 +68,7 @@ export function nomeArquivoRelatorio(
 export function linhaEntradaExcel(e: Entrada) {
   return {
     Horário: formatTime(e.created_at),
-    Tipo: e.tipo === "lavagem" ? "Lavagem" : "Restaurante",
+    Tipo: labelTipoEntradaExport(e.tipo),
     Descrição: labelEntrada(e),
     Placa: e.placa ?? "",
     Modelo: e.modelo ?? "",

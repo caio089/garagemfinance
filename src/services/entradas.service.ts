@@ -24,7 +24,7 @@ export function calcularValorBaseComPrecos(
   precos: PrecosLavagemMap,
   valorPersonalizado?: number
 ): number {
-  if (tipo === "outro") return Math.max(0, valorPersonalizado ?? 0);
+  if (tipo === "outro" || tipo === "avulsa") return Math.max(0, valorPersonalizado ?? 0);
 
   const base =
     categoria === "outro"
@@ -117,6 +117,9 @@ export async function criarEntrada(params: {
     );
     valor = total;
     categoria = "outro";
+  } else if (params.tipo === "avulsa") {
+    valor = Math.max(0, params.valorPersonalizado ?? 0);
+    categoria = "avulsa";
   } else if (params.tipo === "outro") {
     valor = Math.max(0, params.valorPersonalizado ?? 0);
     categoria = "outro";
@@ -133,8 +136,13 @@ export async function criarEntrada(params: {
   const descricaoBase =
     params.tipo === "lavagem" && params.nomeServico
       ? `Lavagem: ${params.nomeServico}`
-      : null;
-  const observacao = params.descricao?.trim();
+      : params.tipo === "avulsa"
+        ? params.descricao?.trim()
+          ? `Avulsa: ${params.descricao.trim()}`
+          : "Entrada avulsa"
+        : null;
+  const observacao =
+    params.tipo === "avulsa" ? undefined : params.descricao?.trim();
   const descricao =
     descricaoBase && observacao
       ? `${descricaoBase} · ${observacao}`

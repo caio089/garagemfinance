@@ -1,15 +1,21 @@
 export type DiaStatus = "iniciado" | "finalizado";
 
-export type EntradaTipo = "lavagem" | "outro";
+export type EntradaTipo = "lavagem" | "outro" | "avulsa";
 
 export type EntradaCategoria =
   | "hatch"
   | "sedan"
   | "suv"
   | "camionete"
-  | "outro";
+  | "outro"
+  | "avulsa";
 
-export type SaidaCategoria = "cozinha" | "funcionario" | "lava_jato";
+export type SaidaCategoria =
+  | "cozinha"
+  | "funcionario"
+  | "lava_jato"
+  | "custos_operacionais"
+  | "manutencao";
 
 export interface Dia {
   id: string;
@@ -92,7 +98,7 @@ export interface DiaComResumo extends Dia {
 }
 
 export const PRECOS_LAVAGEM_PADRAO: Record<
-  Exclude<EntradaCategoria, "outro">,
+  Exclude<EntradaCategoria, "outro" | "avulsa">,
   number
 > = {
   hatch: 55,
@@ -193,10 +199,13 @@ export const CATEGORIA_LABELS: Record<EntradaCategoria, string> = {
   suv: "SUV",
   camionete: "Camionete",
   outro: "Restaurante",
+  avulsa: "Entrada avulsa",
 };
 
 export const SAIDA_CATEGORIA_LABELS: Record<SaidaCategoria, string> = {
   cozinha: "Cozinha",
   funcionario: "Funcionário",
   lava_jato: "Lava-jato",
+  custos_operacionais: "Custos operacionais",
+  manutencao: "Manutenção",
 };

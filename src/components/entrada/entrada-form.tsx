@@ -17,11 +17,11 @@ import { buscarPrecosLavagem } from "@/services/precos.service";
 import { listarServicosLavagem } from "@/services/servicos-lavagem.service";
 import type { ServicoLavagem } from "@/types";
 import { toast } from "sonner";
-import { AlertCircle, Car, Settings, UtensilsCrossed } from "lucide-react";
+import { AlertCircle, Car, CircleDollarSign, Settings, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RestauranteMesas } from "@/components/entrada/restaurante-mesas";
 
-type TipoServico = "lavagem" | "restaurante";
+type TipoServico = "lavagem" | "restaurante" | "avulsa";
 
 export function EntradaForm() {
   const router = useRouter();
@@ -34,6 +34,7 @@ export function EntradaForm() {
   const [placa, setPlaca] = useState("");
   const [modelo, setModelo] = useState("");
   const [descricao, setDescricao] = useState("");
+  const [valorAvulsaInput, setValorAvulsaInput] = useState("");
   const [loading, setLoading] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [semDia, setSemDia] = useState(false);
@@ -57,7 +58,12 @@ export function EntradaForm() {
   const desconto =
     tipoServico === "lavagem" ? parseCurrencyInput(descontoInput) : 0;
 
+  const valorAvulsa = parseCurrencyInput(valorAvulsaInput);
+
   const { base: valorBase, total: valor } = useMemo(() => {
+    if (tipoServico === "avulsa") {
+      return { base: valorAvulsa, total: valorAvulsa };
+    }
     if (tipoServico !== "lavagem" || !servicoSelecionado) {
       return { base: 0, total: 0 };
     }
@@ -67,10 +73,49 @@ export function EntradaForm() {
       precoPolimento,
       desconto
     );
-  }, [tipoServico, servicoSelecionado, polimento, precoPolimento, desconto]);
+  }, [
+    tipoServico,
+    servicoSelecionado,
+    polimento,
+    precoPolimento,
+    desconto,
+    valorAvulsa,
+  ]);
 
   const handleSubmit = async () => {
-    if (tipoServico !== "lavagem") return;
+    if (tipoServico === "restaurante") return;
+
+    if (tipoServico === "avulsa") {
+      if (valorAvulsa <= 0) {
+        toast.error("Informe um valor válido para a entrada avulsa.");
+        return;
+      }
+
+      setLoading(true);
+      try {
+        const dia = await buscarDiaAberto();
+        if (!dia) {
+          setSemDia(true);
+          toast.error("Inicie o dia antes de registrar entradas.");
+          return;
+        }
+
+        await criarEntrada({
+          diaId: dia.id,
+          tipo: "avulsa",
+          polimento: false,
+          descricao: descricao || undefined,
+          valorPersonalizado: valorAvulsa,
+        });
+        toast.success("Entrada avulsa registrada!");
+        router.push("/");
+      } catch {
+        toast.error("Erro ao registrar entrada.");
+      } finally {
+        setLoading(false);
+      }
+      return;
+    }
 
     if (!servicoSelecionado) {
       toast.error("Cadastre um tipo de serviço em Cadastro.");
@@ -149,19 +194,19 @@ export function EntradaForm() {
     <div className="space-y-5">
       <div className="space-y-3">
         <Label className="block text-center text-zinc-400">Tipo de serviço</Label>
-        <div className="grid grid-cols-2 gap-3">
+        <div className="grid grid-cols-3 gap-2 sm:gap-3">
           <button
             type="button"
             onClick={() => setTipoServico("lavagem")}
             className={cn(
-              "flex min-h-[5.5rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
+              "flex min-h-[5.5rem] flex-col items-center justify-center gap-2 rounded-2xl border-2 p-3 transition-all active:scale-[0.98] sm:p-4",
               tipoServico === "lavagem"
                 ? "border-emerald-400 bg-emerald-500/15 text-emerald-400 shadow-[0_0_20px_-8px_rgba(52,211,153,0.5)]"
                 : "border-zinc-800 bg-zinc-900 text-zinc-400"
             )}
           >
-            <Car className="h-7 w-7" />
-            <span className="text-sm font-bold">Lavagem</span>
+            <Car className="h-6 w-6 sm:h-7 sm:w-7" />
+            <span className="text-xs font-bold sm:text-sm">Lavagem</span>
           </button>
           <button
             type="button"
@@ -171,22 +216,112 @@ export function EntradaForm() {
               setDescontoInput("");
               setPlaca("");
               setModelo("");
+              setValorAvulsaInput("");
             }}
             className={cn(
-              "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 p-4 transition-all active:scale-[0.98]",
+              "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 p-3 transition-all active:scale-[0.98] sm:p-4",
               tipoServico === "restaurante"
                 ? "border-emerald-400 bg-emerald-500/15 text-emerald-400 shadow-[0_0_20px_-8px_rgba(52,211,153,0.5)]"
                 : "border-zinc-800 bg-zinc-900 text-zinc-400"
             )}
           >
-            <UtensilsCrossed className="h-7 w-7" />
-            <span className="text-sm font-bold">Restaurante</span>
+            <UtensilsCrossed className="h-6 w-6 sm:h-7 sm:w-7" />
+            <span className="text-xs font-bold sm:text-sm">Restaurante</span>
+          </button>
+          <button
+            type="button"
+            onClick={() => {
+              setTipoServico("avulsa");
+              setPolimento(false);
+              setDescontoInput("");
+              setPlaca("");
+              setModelo("");
+            }}
+            className={cn(
+              "flex min-h-[5.5rem] flex-col items-center justify-center gap-1 rounded-2xl border-2 p-3 transition-all active:scale-[0.98] sm:p-4",
+              tipoServico === "avulsa"
+                ? "border-emerald-400 bg-emerald-500/15 text-emerald-400 shadow-[0_0_20px_-8px_rgba(52,211,153,0.5)]"
+                : "border-zinc-800 bg-zinc-900 text-zinc-400"
+            )}
+          >
+            <CircleDollarSign className="h-6 w-6 sm:h-7 sm:w-7" />
+            <span className="text-xs font-bold sm:text-sm">Avulsa</span>
           </button>
         </div>
       </div>
 
       {tipoServico === "restaurante" && (
         <RestauranteMesas onPrecisaDia={() => setSemDia(true)} />
+      )}
+
+      {tipoServico === "avulsa" && (
+        <motion.div
+          initial={{ opacity: 0, height: 0 }}
+          animate={{ opacity: 1, height: "auto" }}
+          className="space-y-3"
+        >
+          <div className="space-y-2">
+            <Label
+              htmlFor="valor-avulsa"
+              className="block text-center text-zinc-400"
+            >
+              Valor da entrada
+            </Label>
+            <div className="relative">
+              <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-bold text-amber-400">
+                R$
+              </span>
+              <input
+                id="valor-avulsa"
+                type="text"
+                inputMode="decimal"
+                placeholder="0,00"
+                value={valorAvulsaInput}
+                onChange={(e) =>
+                  setValorAvulsaInput(maskCurrencyInput(e.target.value))
+                }
+                className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 pl-12 pr-4 text-center text-2xl font-bold text-white placeholder:text-zinc-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+              />
+            </div>
+          </div>
+
+          <div className="space-y-2">
+            <Label
+              htmlFor="descricao-avulsa"
+              className="block text-center text-zinc-400"
+            >
+              Descrição (opcional)
+            </Label>
+            <input
+              id="descricao-avulsa"
+              type="text"
+              placeholder="Ex: Venda de produto, serviço extra..."
+              value={descricao}
+              onChange={(e) => setDescricao(e.target.value)}
+              className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-900 px-4 text-center text-base text-white placeholder:text-zinc-600 focus:border-emerald-400 focus:outline-none focus:ring-2 focus:ring-emerald-400/20"
+            />
+          </div>
+
+          <div className="rounded-2xl border border-emerald-500/20 bg-emerald-500/10 p-4 text-center">
+            <p className="text-sm text-zinc-400">Total a receber</p>
+            <p className="mt-1 text-3xl font-bold text-emerald-400">
+              {formatCurrency(valorAvulsa)}
+            </p>
+            <p className="mt-1 text-xs text-zinc-500">
+              Soma no total de entradas do dia
+            </p>
+          </div>
+
+          <motion.div whileTap={{ scale: 0.98 }}>
+            <Button
+              onClick={handleSubmit}
+              disabled={loading || valorAvulsa <= 0}
+              className="h-14 w-full rounded-2xl bg-emerald-500 text-base font-bold text-black shadow-lg shadow-emerald-500/25 hover:bg-emerald-400"
+            >
+              {loading ? "Salvando..." : "Registrar entrada avulsa"}
+            </Button>
+          </motion.div>
+        </motion.div>
       )}
 
       {tipoServico === "lavagem" && (
