@@ -73,10 +73,10 @@ export interface DashboardMetrics {
   valorEmCaixa: number;
 }
 
-export type FiltroRelatorio = "dias" | "semanal" | "mensal";
+export type FiltroRelatorio = "dias" | "semanal" | "mensal" | "periodo";
 
 export interface ResumoPeriodo {
-  tipo: "semanal" | "mensal";
+  tipo: "semanal" | "mensal" | "periodo";
   periodoInicio: string;
   periodoFim: string;
   totalEntradas: number;

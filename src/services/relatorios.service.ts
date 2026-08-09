@@ -114,15 +114,30 @@ export async function buscarResumoPeriodo(
   const inicioStr = toDateString(inicio);
   const fimStr = toDateString(fim);
 
-  const diasComResumo = await buscarDiasComResumoPorPeriodo(inicioStr, fimStr);
+  return buscarResumoPorIntervalo(inicioStr, fimStr, tipo);
+}
+
+/** Resumo consolidado entre duas datas (inclusive). */
+export async function buscarResumoPorIntervalo(
+  inicio: string,
+  fim: string,
+  tipo: ResumoPeriodo["tipo"] = "periodo"
+): Promise<ResumoPeriodo> {
+  const [inicioNorm, fimNorm] =
+    inicio <= fim ? [inicio, fim] : [fim, inicio];
+
+  const diasComResumo = await buscarDiasComResumoPorPeriodo(
+    inicioNorm,
+    fimNorm
+  );
 
   const totalEntradas = diasComResumo.reduce((s, d) => s + d.totalEntradas, 0);
   const totalSaidas = diasComResumo.reduce((s, d) => s + d.totalSaidas, 0);
 
   return {
     tipo,
-    periodoInicio: inicioStr,
-    periodoFim: fimStr,
+    periodoInicio: inicioNorm,
+    periodoFim: fimNorm,
     totalEntradas,
     totalSaidas,
     faturamento: totalEntradas,

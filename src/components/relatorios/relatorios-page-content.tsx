@@ -1,6 +1,6 @@
 "use client";
 
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 import { ExportarRelatorioButtons } from "@/components/relatorios/exportar-relatorio-buttons";
 import { ListaMovimentosDia } from "@/components/relatorios/lista-movimentos-dia";
@@ -8,6 +8,8 @@ import { RelatorioDiaItem } from "@/components/relatorios/relatorio-dia-item";
 import { RelatorioDiaModal } from "@/components/relatorios/relatorio-dia-modal";
 import { RelatorioPeriodoCharts } from "@/components/relatorios/relatorio-periodo-charts";
 import { ResumoPeriodoCard } from "@/components/relatorios/resumo-periodo-card";
+import { Button } from "@/components/ui/button";
+import { Label } from "@/components/ui/label";
 import { Skeleton } from "@/components/ui/skeleton";
 import { SupabaseWarning } from "@/components/shared/supabase-warning";
 import type { RelatorioExportData } from "@/lib/export/relatorio-export-shared";
@@ -20,6 +22,7 @@ import {
   fimSemana,
   inicioMes,
   inicioSemana,
+  toDateString,
 } from "@/lib/format";
 import { calcularCaixaFinal, calcularLucro } from "@/lib/financeiro";
 import { isSupabaseConfigured } from "@/lib/supabase";
@@ -31,6 +34,7 @@ import {
   buscarDiasComResumo,
   buscarDiasComResumoPorPeriodo,
   buscarResumoPeriodo,
+  buscarResumoPorIntervalo,
 } from "@/services/relatorios.service";
 import type {
   Dia,
@@ -42,21 +46,40 @@ import type {
 } from "@/types";
 import {
   CalendarDays,
+  CalendarRange,
   ChevronLeft,
   ChevronRight,
   FileBarChart,
   Inbox,
+  Search,
 } from "lucide-react";
+import { toast } from "sonner";
 
 const abas: { id: FiltroRelatorio; label: string }[] = [
   { id: "dias", label: "Dia" },
   { id: "semanal", label: "Semanal" },
   { id: "mensal", label: "Mensal" },
+  { id: "periodo", label: "Período" },
 ];
+
+function dataPadraoInicio(): string {
+  return toDateString(inicioMes(new Date()));
+}
+
+function dataPadraoFim(): string {
+  return toDateString(new Date());
+}
 
 export function RelatoriosPageContent() {
   const [aba, setAba] = useState<FiltroRelatorio>("dias");
   const [referencia, setReferencia] = useState(new Date());
+
+  const [dataInicioInput, setDataInicioInput] = useState(dataPadraoInicio);
+  const [dataFimInput, setDataFimInput] = useState(dataPadraoFim);
+  const [periodoAplicado, setPeriodoAplicado] = useState({
+    inicio: dataPadraoInicio(),
+    fim: dataPadraoFim(),
+  });
 
   const [diaAtivo, setDiaAtivo] = useState<Dia | DiaComResumo | null>(null);
   const [diasHistorico, setDiasHistorico] = useState<DiaComResumo[]>([]);
@@ -132,10 +155,34 @@ export function RelatoriosPageContent() {
     }
   }, [aba, referencia]);
 
+  const carregarAbaIntervalo = useCallback(async () => {
+    if (aba !== "periodo") return;
+    setLoading(true);
+    try {
+      const resumo = await buscarResumoPorIntervalo(
+        periodoAplicado.inicio,
+        periodoAplicado.fim,
+        "periodo"
+      );
+      const dias = await buscarDiasComResumoPorPeriodo(
+        resumo.periodoInicio,
+        resumo.periodoFim
+      );
+      setResumoPeriodo(resumo);
+      setDiasPeriodo(dias);
+    } catch {
+      setResumoPeriodo(null);
+      setDiasPeriodo([]);
+    } finally {
+      setLoading(false);
+    }
+  }, [aba, periodoAplicado]);
+
   useEffect(() => {
     if (aba === "dias") void carregarAbaDia();
+    else if (aba === "periodo") void carregarAbaIntervalo();
     else void carregarAbaPeriodo();
-  }, [aba, carregarAbaDia, carregarAbaPeriodo]);
+  }, [aba, carregarAbaDia, carregarAbaPeriodo, carregarAbaIntervalo]);
 
   const selecionarDia = async (dia: Dia | DiaComResumo) => {
     setDiaAtivo(dia);
@@ -151,10 +198,38 @@ export function RelatoriosPageContent() {
     });
   };
 
-  const tituloPeriodo =
-    aba === "semanal"
-      ? `Semana ${formatWeekRange(inicioSemana(referencia), fimSemana(referencia))}`
-      : formatMonthYear(inicioMes(referencia));
+  const aplicarIntervalo = () => {
+    if (!dataInicioInput || !dataFimInput) {
+      toast.error("Informe a data de início e a data de fim.");
+      return;
+    }
+
+    const [inicio, fim] =
+      dataInicioInput <= dataFimInput
+        ? [dataInicioInput, dataFimInput]
+        : [dataFimInput, dataInicioInput];
+
+    if (dataInicioInput > dataFimInput) {
+      setDataInicioInput(inicio);
+      setDataFimInput(fim);
+      toast.message("Datas invertidas — ajustamos início e fim.");
+    }
+
+    setPeriodoAplicado({ inicio, fim });
+  };
+
+  const tituloPeriodo = useMemo(() => {
+    if (aba === "semanal") {
+      return `Semana ${formatWeekRange(inicioSemana(referencia), fimSemana(referencia))}`;
+    }
+    if (aba === "mensal") {
+      return formatMonthYear(inicioMes(referencia));
+    }
+    if (aba === "periodo" && resumoPeriodo) {
+      return `${formatDate(resumoPeriodo.periodoInicio)} a ${formatDate(resumoPeriodo.periodoFim)}`;
+    }
+    return `${formatDate(periodoAplicado.inicio)} a ${formatDate(periodoAplicado.fim)}`;
+  }, [aba, referencia, resumoPeriodo, periodoAplicado]);
 
   const podeExcluir = !!diaAtivo && diaAtivo.id === diaAbertoId;
 
@@ -179,9 +254,10 @@ export function RelatoriosPageContent() {
     : null;
 
   const exportDataPeriodo: RelatorioExportData | null =
-    resumoPeriodo && (aba === "semanal" || aba === "mensal")
+    resumoPeriodo &&
+    (aba === "semanal" || aba === "mensal" || aba === "periodo")
       ? {
-          tipo: aba,
+          tipo: aba === "periodo" ? "periodo" : aba,
           resumo: resumoPeriodo,
           dias: diasPeriodo,
           tituloPeriodo,
@@ -202,11 +278,11 @@ export function RelatoriosPageContent() {
           Relatórios
         </h1>
         <p className="text-sm text-zinc-500">
-          Movimentações do dia, semana e mês
+          Dia, semana, mês ou intervalo personalizado
         </p>
       </div>
 
-      <div className="grid grid-cols-3 gap-1 rounded-2xl border border-white/[0.06] bg-card/80 p-1 backdrop-blur-sm">
+      <div className="grid grid-cols-4 gap-1 rounded-2xl border border-white/[0.06] bg-card/80 p-1 backdrop-blur-sm">
         {abas.map((item) => (
           <button
             key={item.id}
@@ -214,9 +290,17 @@ export function RelatoriosPageContent() {
             onClick={() => {
               setAba(item.id);
               setReferencia(new Date());
+              if (item.id === "periodo") {
+                setDataInicioInput(dataPadraoInicio());
+                setDataFimInput(dataPadraoFim());
+                setPeriodoAplicado({
+                  inicio: dataPadraoInicio(),
+                  fim: dataPadraoFim(),
+                });
+              }
             }}
             className={cn(
-              "rounded-xl py-2.5 text-sm font-bold transition-all",
+              "rounded-xl py-2.5 text-xs font-bold transition-all sm:text-sm",
               aba === item.id
                 ? "bg-amber-400 text-black shadow-md shadow-amber-400/20"
                 : "text-zinc-500 hover:text-zinc-300"
@@ -390,27 +474,87 @@ export function RelatoriosPageContent() {
         )
       ) : (
         <div className="space-y-4">
-          <div className="surface-premium flex items-center justify-between rounded-2xl px-3 py-3">
-            <button
-              type="button"
-              onClick={() => navegarPeriodo(-1)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] text-zinc-400 hover:text-white"
-              aria-label="Período anterior"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </button>
-            <span className="text-sm font-semibold capitalize text-zinc-200">
-              {tituloPeriodo}
-            </span>
-            <button
-              type="button"
-              onClick={() => navegarPeriodo(1)}
-              className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] text-zinc-400 hover:text-white"
-              aria-label="Próximo período"
-            >
-              <ChevronRight className="h-4 w-4" />
-            </button>
-          </div>
+          {aba === "periodo" ? (
+            <div className="surface-premium space-y-4 rounded-2xl p-4">
+              <div className="flex items-center gap-2 text-amber-400">
+                <CalendarRange className="h-4 w-4" />
+                <p className="text-xs font-semibold uppercase tracking-wider">
+                  Intervalo personalizado
+                </p>
+              </div>
+
+              <div className="grid gap-3 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label htmlFor="data-inicio" className="text-zinc-400">
+                    Data início
+                  </Label>
+                  <input
+                    id="data-inicio"
+                    type="date"
+                    value={dataInicioInput}
+                    max={dataFimInput || undefined}
+                    onChange={(e) => setDataInicioInput(e.target.value)}
+                    className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm font-medium text-white focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label htmlFor="data-fim" className="text-zinc-400">
+                    Data fim
+                  </Label>
+                  <input
+                    id="data-fim"
+                    type="date"
+                    value={dataFimInput}
+                    min={dataInicioInput || undefined}
+                    onChange={(e) => setDataFimInput(e.target.value)}
+                    className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 px-3 text-sm font-medium text-white focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+                  />
+                </div>
+              </div>
+
+              <Button
+                type="button"
+                onClick={aplicarIntervalo}
+                className="h-12 w-full rounded-xl bg-amber-400 font-bold text-black hover:bg-amber-300"
+              >
+                <Search className="mr-2 h-4 w-4" />
+                Ver período
+              </Button>
+
+              <p className="text-center text-xs text-zinc-500">
+                Exibindo de{" "}
+                <span className="font-semibold text-zinc-300">
+                  {formatDate(periodoAplicado.inicio)}
+                </span>{" "}
+                até{" "}
+                <span className="font-semibold text-zinc-300">
+                  {formatDate(periodoAplicado.fim)}
+                </span>
+              </p>
+            </div>
+          ) : (
+            <div className="surface-premium flex items-center justify-between rounded-2xl px-3 py-3">
+              <button
+                type="button"
+                onClick={() => navegarPeriodo(-1)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] text-zinc-400 hover:text-white"
+                aria-label="Período anterior"
+              >
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+              <span className="text-sm font-semibold capitalize text-zinc-200">
+                {tituloPeriodo}
+              </span>
+              <button
+                type="button"
+                onClick={() => navegarPeriodo(1)}
+                className="flex h-9 w-9 items-center justify-center rounded-lg bg-white/[0.04] text-zinc-400 hover:text-white"
+                aria-label="Próximo período"
+              >
+                <ChevronRight className="h-4 w-4" />
+              </button>
+            </div>
+          )}
 
           {resumoPeriodo && (
             <>
@@ -419,7 +563,13 @@ export function RelatoriosPageContent() {
               </div>
               <ResumoPeriodoCard
                 resumo={resumoPeriodo}
-                titulo={aba === "semanal" ? "Resumo Semanal" : "Resumo Mensal"}
+                titulo={
+                  aba === "semanal"
+                    ? "Resumo Semanal"
+                    : aba === "mensal"
+                      ? "Resumo Mensal"
+                      : "Resumo do Período"
+                }
               />
               <RelatorioPeriodoCharts
                 resumo={resumoPeriodo}

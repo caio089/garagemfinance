@@ -35,6 +35,8 @@ export function EntradaForm() {
   const [modelo, setModelo] = useState("");
   const [descricao, setDescricao] = useState("");
   const [valorAvulsaInput, setValorAvulsaInput] = useState("");
+  const [servicoExtraInput, setServicoExtraInput] = useState("");
+  const [descricaoExtra, setDescricaoExtra] = useState("");
   const [loading, setLoading] = useState(false);
   const [carregando, setCarregando] = useState(true);
   const [semDia, setSemDia] = useState(false);
@@ -59,6 +61,8 @@ export function EntradaForm() {
     tipoServico === "lavagem" ? parseCurrencyInput(descontoInput) : 0;
 
   const valorAvulsa = parseCurrencyInput(valorAvulsaInput);
+  const servicoExtra =
+    tipoServico === "lavagem" ? parseCurrencyInput(servicoExtraInput) : 0;
 
   const { base: valorBase, total: valor } = useMemo(() => {
     if (tipoServico === "avulsa") {
@@ -71,7 +75,8 @@ export function EntradaForm() {
       servicoSelecionado.valor,
       polimento,
       precoPolimento,
-      desconto
+      desconto,
+      servicoExtra
     );
   }, [
     tipoServico,
@@ -80,6 +85,7 @@ export function EntradaForm() {
     precoPolimento,
     desconto,
     valorAvulsa,
+    servicoExtra,
   ]);
 
   const handleSubmit = async () => {
@@ -133,6 +139,10 @@ export function EntradaForm() {
       toast.error("O desconto não pode ser maior que o valor da lavagem.");
       return;
     }
+    if (servicoExtra > 0 && !descricaoExtra.trim()) {
+      toast.error("Descreva o serviço extra.");
+      return;
+    }
 
     setLoading(true);
     try {
@@ -154,6 +164,9 @@ export function EntradaForm() {
         servicoLavagemId: servicoSelecionado.id,
         nomeServico: servicoSelecionado.nome,
         valorPersonalizado: servicoSelecionado.valor,
+        servicoExtraValor: servicoExtra > 0 ? servicoExtra : undefined,
+        servicoExtraDescricao:
+          servicoExtra > 0 ? descricaoExtra.trim() : undefined,
       });
       toast.success("Entrada registrada!");
       router.push("/");
@@ -438,6 +451,53 @@ export function EntradaForm() {
             </div>
           </div>
 
+          <div className="space-y-3 rounded-2xl border border-zinc-800 bg-zinc-900/60 p-4">
+            <p className="text-center text-sm font-semibold text-zinc-300">
+              Serviço extra{" "}
+              <span className="font-normal text-zinc-500">(opcional)</span>
+            </p>
+            <div className="space-y-2">
+              <Label
+                htmlFor="servico-extra-valor"
+                className="block text-center text-zinc-400"
+              >
+                Valor do extra
+              </Label>
+              <div className="relative">
+                <span className="absolute left-4 top-1/2 -translate-y-1/2 text-base font-bold text-amber-400">
+                  R$
+                </span>
+                <input
+                  id="servico-extra-valor"
+                  type="text"
+                  inputMode="decimal"
+                  placeholder="0,00"
+                  value={servicoExtraInput}
+                  onChange={(e) =>
+                    setServicoExtraInput(maskCurrencyInput(e.target.value))
+                  }
+                  className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-950 pl-12 pr-4 text-center text-base font-bold text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+                />
+              </div>
+            </div>
+            <div className="space-y-2">
+              <Label
+                htmlFor="servico-extra-desc"
+                className="block text-center text-zinc-400"
+              >
+                O que foi o serviço extra?
+              </Label>
+              <input
+                id="servico-extra-desc"
+                type="text"
+                placeholder="Ex: Engraxamento, limpeza de motor..."
+                value={descricaoExtra}
+                onChange={(e) => setDescricaoExtra(e.target.value)}
+                className="h-14 w-full rounded-2xl border-2 border-zinc-800 bg-zinc-950 px-4 text-center text-base text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+              />
+            </div>
+          </div>
+
           <div className="space-y-2">
             <Label htmlFor="placa" className="block text-center text-zinc-400">
               Placa do carro
@@ -496,6 +556,9 @@ export function EntradaForm() {
             <p className="mt-1 text-xs text-zinc-500">
               {servicoSelecionado?.nome ?? "—"}
               {polimento ? " + Polimento" : ""}
+              {servicoExtra > 0
+                ? ` + Extra ${formatCurrency(servicoExtra)}`
+                : ""}
               {desconto > 0 ? ` − Desconto ${formatCurrency(desconto)}` : ""}
             </p>
           </div>

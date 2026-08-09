@@ -324,11 +324,15 @@ function exportarPdfDiario(data: Extract<RelatorioExportData, { tipo: "diario" }
 }
 
 function exportarPdfPeriodo(
-  data: Extract<RelatorioExportData, { tipo: "semanal" | "mensal" }>
+  data: Extract<RelatorioExportData, { tipo: "semanal" | "mensal" | "periodo" }>
 ) {
   const doc = new jsPDF({ unit: "mm", format: "a4" }) as JsPdfWithAutoTable;
   const titulo =
-    data.tipo === "semanal" ? "Relatório Semanal" : "Relatório Mensal";
+    data.tipo === "semanal"
+      ? "Relatório Semanal"
+      : data.tipo === "periodo"
+        ? "Relatório por Período"
+        : "Relatório Mensal";
   const periodoLabel = `${formatDate(data.resumo.periodoInicio)} a ${formatDate(data.resumo.periodoFim)}`;
 
   let y = drawHeader(doc, titulo, data.tituloPeriodo);

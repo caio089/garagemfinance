@@ -9,7 +9,7 @@ import {
   type Saida,
 } from "@/types";
 
-export type TipoRelatorioExport = "diario" | "semanal" | "mensal";
+export type TipoRelatorioExport = "diario" | "semanal" | "mensal" | "periodo";
 
 export interface RelatorioDiaExportData {
   tipo: "diario";
@@ -20,7 +20,7 @@ export interface RelatorioDiaExportData {
 }
 
 export interface RelatorioPeriodoExportData {
-  tipo: "semanal" | "mensal";
+  tipo: "semanal" | "mensal" | "periodo";
   resumo: ResumoPeriodo;
   dias: DiaComResumo[];
   tituloPeriodo: string;
@@ -61,7 +61,12 @@ export function nomeArquivoRelatorio(
   if (data.tipo === "diario") {
     return `garagem-federal-diario-${data.dia.data}.${extensao}`;
   }
-  const tipo = data.tipo === "semanal" ? "semanal" : "mensal";
+  const tipo =
+    data.tipo === "semanal"
+      ? "semanal"
+      : data.tipo === "periodo"
+        ? "periodo"
+        : "mensal";
   return `garagem-federal-${tipo}-${data.resumo.periodoInicio}_${data.resumo.periodoFim}-${stamp}.${extensao}`;
 }
 
@@ -116,6 +121,14 @@ export function textoExplicativo(data: RelatorioExportData): string {
       "Este relatório semanal consolida os dias operados no período selecionado. " +
       "Mostra o faturamento total (entradas), o total de saídas, o lucro do período e a composição dos serviços. " +
       "A tabela por dia permite comparar o desempenho diário e identificar variações ao longo da semana."
+    );
+  }
+
+  if (data.tipo === "periodo") {
+    return (
+      "Este relatório personalizado consolida os dias operados entre as datas escolhidas. " +
+      "Mostra o faturamento total (entradas), o total de saídas, o lucro do período e a composição dos serviços. " +
+      "A tabela por dia permite comparar o desempenho diário no intervalo selecionado."
     );
   }
 

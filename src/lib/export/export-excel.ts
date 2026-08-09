@@ -81,7 +81,11 @@ export function exportarRelatorioExcel(data: RelatorioExportData) {
     );
   } else {
     const titulo =
-      data.tipo === "semanal" ? "Relatório Semanal" : "Relatório Mensal";
+      data.tipo === "semanal"
+        ? "Relatório Semanal"
+        : data.tipo === "periodo"
+          ? "Relatório por Período"
+          : "Relatório Mensal";
 
     const resumo = [
       { Campo: "Empresa", Valor: "Garagem Federal" },

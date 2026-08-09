@@ -9,11 +9,18 @@ export function calcularValorLavagem(
   valorServico: number,
   polimento: boolean,
   precoPolimento: number,
-  desconto = 0
-): { base: number; total: number } {
-  const base = Math.max(0, valorServico) + (polimento ? Math.max(0, precoPolimento) : 0);
+  desconto = 0,
+  servicoExtra = 0
+): { base: number; total: number; extra: number } {
+  const base =
+    Math.max(0, valorServico) + (polimento ? Math.max(0, precoPolimento) : 0);
   const descontoAplicado = Math.max(0, Math.min(desconto, base));
-  return { base, total: Math.max(0, base - descontoAplicado) };
+  const extra = Math.max(0, servicoExtra);
+  return {
+    base,
+    extra,
+    total: Math.max(0, base - descontoAplicado) + extra,
+  };
 }
 
 /** @deprecated prefer calcularValorLavagem com serviço cadastrado */
@@ -100,9 +107,18 @@ export async function criarEntrada(params: {
   itemAlimentacaoId?: string;
   servicoLavagemId?: string;
   nomeServico?: string;
+  /** Valor opcional de serviço extra na lavagem */
+  servicoExtraValor?: number;
+  /** Descrição do serviço extra */
+  servicoExtraDescricao?: string;
 }): Promise<Entrada> {
   const desconto =
     params.tipo === "lavagem" ? Math.max(0, params.desconto ?? 0) : 0;
+  const servicoExtraValor =
+    params.tipo === "lavagem"
+      ? Math.max(0, params.servicoExtraValor ?? 0)
+      : 0;
+  const servicoExtraDescricao = params.servicoExtraDescricao?.trim() || "";
 
   let valor: number;
   let categoria: string = params.categoria ?? "outro";
@@ -113,7 +129,8 @@ export async function criarEntrada(params: {
       params.valorPersonalizado ?? 0,
       params.polimento,
       precos.polimento,
-      desconto
+      desconto,
+      servicoExtraValor
     );
     valor = total;
     categoria = "outro";
@@ -133,20 +150,34 @@ export async function criarEntrada(params: {
     );
   }
 
-  const descricaoBase =
-    params.tipo === "lavagem" && params.nomeServico
-      ? `Lavagem: ${params.nomeServico}`
-      : params.tipo === "avulsa"
-        ? params.descricao?.trim()
-          ? `Avulsa: ${params.descricao.trim()}`
-          : "Entrada avulsa"
-        : null;
-  const observacao =
-    params.tipo === "avulsa" ? undefined : params.descricao?.trim();
-  const descricao =
-    descricaoBase && observacao
-      ? `${descricaoBase} · ${observacao}`
-      : observacao || descricaoBase;
+  const partes: string[] = [];
+
+  if (params.tipo === "lavagem" && params.nomeServico) {
+    partes.push(`Lavagem: ${params.nomeServico}`);
+  } else if (params.tipo === "avulsa") {
+    partes.push(
+      params.descricao?.trim()
+        ? `Avulsa: ${params.descricao.trim()}`
+        : "Entrada avulsa"
+    );
+  }
+
+  if (params.tipo === "lavagem" && servicoExtraValor > 0) {
+    const extraLabel = servicoExtraDescricao || "Serviço extra";
+    partes.push(
+      `Extra: ${extraLabel} (+${servicoExtraValor.toLocaleString("pt-BR", {
+        style: "currency",
+        currency: "BRL",
+      })})`
+    );
+  }
+
+  if (params.tipo !== "avulsa") {
+    const observacao = params.descricao?.trim();
+    if (observacao) partes.push(observacao);
+  }
+
+  const descricao = partes.length > 0 ? partes.join(" · ") : null;
 
   const { data, error } = await getSupabase()
     .from("entradas")

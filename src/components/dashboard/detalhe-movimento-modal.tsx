@@ -10,7 +10,7 @@ import {
 import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { formatCurrency, formatDate, formatTime } from "@/lib/format";
-import { labelEntrada } from "@/lib/movimento-labels";
+import { labelEntrada, parseServicoExtra } from "@/lib/movimento-labels";
 import { excluirEntrada } from "@/services/entradas.service";
 import { excluirSaida } from "@/services/saidas.service";
 import {
@@ -32,12 +32,18 @@ function labelCategoria(categoria: string): string {
 }
 
 function valorBaseLavagem(entrada: Entrada): number {
+  const extra = parseServicoExtra(entrada.descricao);
+  const bruto =
+    Number(entrada.valor) +
+    Number(entrada.desconto ?? 0) -
+    (extra?.valor ?? 0);
+
   const cat = entrada.categoria;
   if (cat === "outro" || !(cat in PRECOS_LAVAGEM)) {
-    return Number(entrada.valor) + Number(entrada.desconto ?? 0);
+    return Math.max(0, bruto);
   }
   return Number(
-    PRECOS_LAVAGEM[cat as keyof typeof PRECOS_LAVAGEM] ?? entrada.valor
+    PRECOS_LAVAGEM[cat as keyof typeof PRECOS_LAVAGEM] ?? Math.max(0, bruto)
   );
 }
 
@@ -152,6 +158,17 @@ export function DetalheMovimentoModal({
                       valueClassName="text-amber-400"
                     />
                   )}
+                  {(() => {
+                    const extra = parseServicoExtra(entrada.descricao);
+                    if (!extra) return null;
+                    return (
+                      <Row
+                        label="Serviço extra"
+                        value={`${extra.descricao} · ${formatCurrency(extra.valor)}`}
+                        valueClassName="text-sky-300"
+                      />
+                    );
+                  })()}
                   {entrada.placa && <Row label="Placa" value={entrada.placa} />}
                   {entrada.modelo && (
                     <Row label="Modelo" value={entrada.modelo} />
