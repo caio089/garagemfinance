@@ -53,6 +53,17 @@ export async function buscarClientePorPlaca(
   return data ? mapCliente(data) : null;
 }
 
+/** Lista completa de clientes (só painel financeiro). */
+export async function listarClientesVeiculos(): Promise<ClienteVeiculo[]> {
+  const { data, error } = await getSupabase()
+    .from("clientes_veiculos")
+    .select("*")
+    .order("updated_at", { ascending: false });
+
+  if (error) throw error;
+  return (data ?? []).map(mapCliente);
+}
+
 export async function upsertClienteVeiculo(params: {
   placa: string;
   nomeProprietario: string;
