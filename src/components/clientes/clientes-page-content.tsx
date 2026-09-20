@@ -24,8 +24,10 @@ export function ClientesPageContent() {
     try {
       const lista = await listarClientesVeiculos();
       setClientes(lista);
-    } catch {
-      toast.error("Não foi possível carregar os clientes.");
+    } catch (err) {
+      const msg =
+        err instanceof Error ? err.message : "Não foi possível carregar os clientes.";
+      toast.error(msg);
       setClientes([]);
     } finally {
       setCarregando(false);
