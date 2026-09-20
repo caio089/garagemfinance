@@ -28,6 +28,8 @@ interface DashboardChartsProps {
   entradas: Entrada[];
   saidas: Saida[];
   loading: boolean;
+  /** Título do gráfico de fluxo (padrão: Fluxo do dia). */
+  tituloFluxo?: string;
 }
 
 const COLORS = ["#fbbf24", "#34d399", "#60a5fa", "#f472b6", "#a78bfa", "#fb923c"];
@@ -233,6 +235,7 @@ export function DashboardCharts({
   entradas,
   saidas,
   loading,
+  tituloFluxo = "Fluxo do dia",
 }: DashboardChartsProps) {
   if (loading) {
     return (
@@ -305,7 +308,7 @@ export function DashboardCharts({
 
       <div className="grid gap-4 lg:grid-cols-2 lg:gap-5">
         <ChartShell
-          title="Fluxo do dia"
+          title={tituloFluxo}
           subtitle="Comparativo de entradas e saídas"
           delay={0.12}
           className="lg:col-span-2"

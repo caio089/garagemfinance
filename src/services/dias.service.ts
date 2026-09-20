@@ -1,5 +1,6 @@
 import { calcularCaixaFinal, calcularLucro } from "@/lib/financeiro";
 import { getSupabase } from "@/lib/supabase";
+import { reiniciarFilaAoAbrirDia } from "@/services/fila.service";
 import type { Dia, ResumoDia } from "@/types";
 
 export async function buscarDiaAberto(): Promise<Dia | null> {
@@ -38,6 +39,14 @@ export async function iniciarDia(caixaInicial: number): Promise<Dia> {
     }
     throw error;
   }
+
+  // Todo dia começa com fila limpa (carros do dia anterior somem da tela)
+  try {
+    await reiniciarFilaAoAbrirDia();
+  } catch {
+    // Não impede abrir o dia se a fila ainda não existir no banco
+  }
+
   return data;
 }
 

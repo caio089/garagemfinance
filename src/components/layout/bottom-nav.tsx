@@ -3,7 +3,7 @@
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { motion } from "framer-motion";
-import { FileBarChart, Home, Settings } from "lucide-react";
+import { CarFront, FileBarChart, Home, Settings } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const navItems = [
@@ -11,6 +11,11 @@ const navItems = [
     href: "/",
     label: "Início",
     icon: Home,
+  },
+  {
+    href: "/fila",
+    label: "Fila",
+    icon: CarFront,
   },
   {
     href: "/relatorios",

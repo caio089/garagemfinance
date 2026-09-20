@@ -14,7 +14,6 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SupabaseWarning } from "@/components/shared/supabase-warning";
 import type { RelatorioExportData } from "@/lib/export/relatorio-export-shared";
 import {
-  formatCurrency,
   formatDate,
   formatDateLong,
   formatMonthYear,
@@ -24,7 +23,7 @@ import {
   inicioSemana,
   toDateString,
 } from "@/lib/format";
-import { calcularCaixaFinal, calcularLucro } from "@/lib/financeiro";
+import { calcularCaixaFinal } from "@/lib/financeiro";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
 import { buscarDiaAberto } from "@/services/dias.service";
@@ -33,8 +32,10 @@ import { buscarSaidasDoDia } from "@/services/saidas.service";
 import {
   buscarDiasComResumo,
   buscarDiasComResumoPorPeriodo,
+  buscarMovimentosPorPeriodo,
   buscarResumoPeriodo,
   buscarResumoPorIntervalo,
+  montarResumoDeMovimentos,
 } from "@/services/relatorios.service";
 import type {
   Dia,
@@ -87,6 +88,8 @@ export function RelatoriosPageContent() {
   const [resumoPeriodo, setResumoPeriodo] = useState<ResumoPeriodo | null>(null);
   const [entradas, setEntradas] = useState<Entrada[]>([]);
   const [saidas, setSaidas] = useState<Saida[]>([]);
+  const [entradasPeriodo, setEntradasPeriodo] = useState<Entrada[]>([]);
+  const [saidasPeriodo, setSaidasPeriodo] = useState<Saida[]>([]);
   const [diaAbertoId, setDiaAbertoId] = useState<string | null>(null);
   const [diaModalId, setDiaModalId] = useState<string | null>(null);
 
@@ -141,15 +144,19 @@ export function RelatoriosPageContent() {
     setLoading(true);
     try {
       const resumo = await buscarResumoPeriodo(aba, referencia);
-      const dias = await buscarDiasComResumoPorPeriodo(
-        resumo.periodoInicio,
-        resumo.periodoFim
-      );
+      const [dias, movimentos] = await Promise.all([
+        buscarDiasComResumoPorPeriodo(resumo.periodoInicio, resumo.periodoFim),
+        buscarMovimentosPorPeriodo(resumo.periodoInicio, resumo.periodoFim),
+      ]);
       setResumoPeriodo(resumo);
       setDiasPeriodo(dias);
+      setEntradasPeriodo(movimentos.entradas);
+      setSaidasPeriodo(movimentos.saidas);
     } catch {
       setResumoPeriodo(null);
       setDiasPeriodo([]);
+      setEntradasPeriodo([]);
+      setSaidasPeriodo([]);
     } finally {
       setLoading(false);
     }
@@ -164,15 +171,19 @@ export function RelatoriosPageContent() {
         periodoAplicado.fim,
         "periodo"
       );
-      const dias = await buscarDiasComResumoPorPeriodo(
-        resumo.periodoInicio,
-        resumo.periodoFim
-      );
+      const [dias, movimentos] = await Promise.all([
+        buscarDiasComResumoPorPeriodo(resumo.periodoInicio, resumo.periodoFim),
+        buscarMovimentosPorPeriodo(resumo.periodoInicio, resumo.periodoFim),
+      ]);
       setResumoPeriodo(resumo);
       setDiasPeriodo(dias);
+      setEntradasPeriodo(movimentos.entradas);
+      setSaidasPeriodo(movimentos.saidas);
     } catch {
       setResumoPeriodo(null);
       setDiasPeriodo([]);
+      setEntradasPeriodo([]);
+      setSaidasPeriodo([]);
     } finally {
       setLoading(false);
     }
@@ -241,7 +252,6 @@ export function RelatoriosPageContent() {
       ? Number(diaAtivo.caixa_final)
       : calcularCaixaFinal(caixaInicialDia, totalEntradasDia, totalSaidasDia)
     : 0;
-  const saldoDia = calcularLucro(totalEntradasDia, totalSaidasDia);
 
   const exportDataDia: RelatorioExportData | null = diaAtivo
     ? {
@@ -263,6 +273,16 @@ export function RelatoriosPageContent() {
           tituloPeriodo,
         }
       : null;
+
+  const resumoDiaDetalhado = useMemo(() => {
+    if (!diaAtivo || aba !== "dias") return null;
+    return montarResumoDeMovimentos(entradas, saidas, {
+      tipo: "periodo",
+      periodoInicio: diaAtivo.data,
+      periodoFim: diaAtivo.data,
+      diasOperados: 1,
+    });
+  }, [aba, diaAtivo, entradas, saidas]);
 
   if (!isSupabaseConfigured()) {
     return <SupabaseWarning />;
@@ -340,59 +360,6 @@ export function RelatoriosPageContent() {
               </p>
             </div>
 
-            {!loadingLista && (
-              <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
-                <div className="surface-premium rounded-2xl p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wide text-zinc-500">
-                    Caixa inicial
-                  </p>
-                  <p className="mt-1 text-sm font-bold tabular-nums text-zinc-200">
-                    {formatCurrency(caixaInicialDia)}
-                  </p>
-                </div>
-                <div className="surface-premium rounded-2xl p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wide text-zinc-500">
-                    Entradas
-                  </p>
-                  <p className="mt-1 text-sm font-bold tabular-nums text-emerald-400">
-                    {formatCurrency(totalEntradasDia)}
-                  </p>
-                </div>
-                <div className="surface-premium rounded-2xl p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wide text-zinc-500">
-                    Saídas
-                  </p>
-                  <p className="mt-1 text-sm font-bold tabular-nums text-rose-400">
-                    {formatCurrency(totalSaidasDia)}
-                  </p>
-                </div>
-                <div className="surface-premium rounded-2xl border border-amber-400/20 bg-amber-400/[0.06] p-3 text-center">
-                  <p className="text-[10px] uppercase tracking-wide text-amber-400/80">
-                    {diaAtivo.caixa_final != null
-                      ? "Caixa final"
-                      : "Caixa previsto"}
-                  </p>
-                  <p className="mt-1 text-sm font-bold tabular-nums text-amber-300">
-                    {formatCurrency(caixaFinalDia)}
-                  </p>
-                  {diaAtivo.caixa_final != null && (
-                    <p className="mt-0.5 text-[10px] text-zinc-500">
-                      Após finalização
-                    </p>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {diaAtivo.caixa_final != null && !loadingLista && (
-              <p className="text-center text-xs text-zinc-500">
-                Saldo do dia{" "}
-                <span className="font-semibold text-zinc-300">
-                  {formatCurrency(saldoDia)}
-                </span>
-              </p>
-            )}
-
             <div className="surface-premium rounded-2xl p-3">
               <ExportarRelatorioButtons
                 data={exportDataDia}
@@ -447,18 +414,26 @@ export function RelatoriosPageContent() {
               <Skeleton className="h-64 rounded-2xl bg-zinc-800/80" />
             ) : (
               <>
+                {resumoDiaDetalhado && (
+                  <ResumoPeriodoCard
+                    resumo={resumoDiaDetalhado}
+                    titulo="Resumo do Dia"
+                    caixaInicial={caixaInicialDia}
+                    caixaFinal={caixaFinalDia}
+                    caixaFinalLabel={
+                      diaAtivo.caixa_final != null
+                        ? "Caixa final"
+                        : "Caixa previsto"
+                    }
+                  />
+                )}
                 <DashboardCharts
-                  totalEntradas={entradas.reduce(
-                    (acc, e) => acc + Number(e.valor),
-                    0
-                  )}
-                  totalSaidas={saidas.reduce(
-                    (acc, s) => acc + Number(s.valor),
-                    0
-                  )}
+                  totalEntradas={totalEntradasDia}
+                  totalSaidas={totalSaidasDia}
                   entradas={entradas}
                   saidas={saidas}
                   loading={false}
+                  tituloFluxo="Fluxo do dia"
                 />
                 <ListaMovimentosDia
                   entradas={entradas}
@@ -570,6 +545,14 @@ export function RelatoriosPageContent() {
                       ? "Resumo Mensal"
                       : "Resumo do Período"
                 }
+              />
+              <DashboardCharts
+                totalEntradas={resumoPeriodo.totalEntradas}
+                totalSaidas={resumoPeriodo.totalSaidas}
+                entradas={entradasPeriodo}
+                saidas={saidasPeriodo}
+                loading={false}
+                tituloFluxo="Fluxo do período"
               />
               <RelatorioPeriodoCharts
                 resumo={resumoPeriodo}

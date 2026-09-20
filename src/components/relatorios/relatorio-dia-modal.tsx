@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { motion } from "framer-motion";
 import {
   Dialog,
@@ -11,12 +11,13 @@ import {
 import { Skeleton } from "@/components/ui/skeleton";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
 import { ExportarRelatorioButtons } from "@/components/relatorios/exportar-relatorio-buttons";
-import { RelatorioResumo } from "@/components/relatorios/relatorio-resumo";
 import { ListaMovimentosDia } from "@/components/relatorios/lista-movimentos-dia";
+import { ResumoPeriodoCard } from "@/components/relatorios/resumo-periodo-card";
 import type { RelatorioExportData } from "@/lib/export/relatorio-export-shared";
 import { formatDate, formatDateLong } from "@/lib/format";
 import { calcularResumoDia } from "@/services/dias.service";
 import { buscarEntradasDoDia } from "@/services/entradas.service";
+import { montarResumoDeMovimentos } from "@/services/relatorios.service";
 import { buscarSaidasDoDia } from "@/services/saidas.service";
 import type { Dia, Entrada, ResumoDia, Saida } from "@/types";
 import { FileText } from "lucide-react";
@@ -59,6 +60,16 @@ export function RelatorioDiaModal({ diaId, onClose }: RelatorioDiaModalProps) {
       .finally(() => setLoading(false));
   }, [diaId]);
 
+  const resumoDetalhado = useMemo(() => {
+    if (!resumo) return null;
+    return montarResumoDeMovimentos(entradas, saidas, {
+      tipo: "periodo",
+      periodoInicio: resumo.data,
+      periodoFim: resumo.data,
+      diasOperados: 1,
+    });
+  }, [resumo, entradas, saidas]);
+
   let exportData: RelatorioExportData | null = null;
   if (diaId && resumo) {
     const dia: Dia = {
@@ -98,20 +109,26 @@ export function RelatorioDiaModal({ diaId, onClose }: RelatorioDiaModalProps) {
             <Skeleton className="h-32 rounded-xl bg-zinc-800" />
             <Skeleton className="h-24 rounded-xl bg-zinc-800" />
           </div>
-        ) : resumo ? (
+        ) : resumo && resumoDetalhado ? (
           <motion.div
             initial={{ opacity: 0, y: 8 }}
             animate={{ opacity: 1, y: 0 }}
             className="space-y-5"
           >
             <ExportarRelatorioButtons data={exportData} />
-            <RelatorioResumo resumo={resumo} />
+            <ResumoPeriodoCard
+              resumo={resumoDetalhado}
+              titulo="Resumo do Dia"
+              caixaInicial={resumo.caixaInicial}
+              caixaFinal={resumo.caixaFinal}
+            />
             <DashboardCharts
               totalEntradas={resumo.totalEntradas}
               totalSaidas={resumo.totalSaidas}
               entradas={entradas}
               saidas={saidas}
               loading={false}
+              tituloFluxo="Fluxo do dia"
             />
             <ListaMovimentosDia
               entradas={entradas}

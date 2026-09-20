@@ -111,6 +111,11 @@ export async function criarEntrada(params: {
   servicoExtraValor?: number;
   /** Descrição do serviço extra */
   servicoExtraDescricao?: string;
+  /**
+   * Quando informado (ex.: fila), usa este valor final no caixa/relatório
+   * sem recalcular polimento/extra.
+   */
+  valorFixo?: number;
 }): Promise<Entrada> {
   const desconto =
     params.tipo === "lavagem" ? Math.max(0, params.desconto ?? 0) : 0;
@@ -123,7 +128,11 @@ export async function criarEntrada(params: {
   let valor: number;
   let categoria: string = params.categoria ?? "outro";
 
-  if (params.tipo === "lavagem" && params.servicoLavagemId) {
+  if (params.valorFixo != null) {
+    valor = Math.max(0, params.valorFixo);
+    if (params.tipo === "avulsa") categoria = "avulsa";
+    else if (params.tipo === "lavagem") categoria = "outro";
+  } else if (params.tipo === "lavagem" && params.servicoLavagemId) {
     const precos = await buscarPrecosLavagem();
     const { total } = calcularValorLavagem(
       params.valorPersonalizado ?? 0,

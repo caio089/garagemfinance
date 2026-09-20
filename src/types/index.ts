@@ -75,6 +75,12 @@ export interface DashboardMetrics {
 
 export type FiltroRelatorio = "dias" | "semanal" | "mensal" | "periodo";
 
+export interface ResumoPeriodoItem {
+  nome: string;
+  quantidade: number;
+  valor: number;
+}
+
 export interface ResumoPeriodo {
   tipo: "semanal" | "mensal" | "periodo";
   periodoInicio: string;
@@ -87,6 +93,14 @@ export interface ResumoPeriodo {
   lavagens: number;
   polimentos: number;
   outros: number;
+  /** Valores separados por origem (igual ao diário). */
+  valorLavagens: number;
+  valorRestaurante: number;
+  valorAvulsa: number;
+  /** Quantidade e valor por tipo de lavagem (SUV, hatch…). */
+  servicosLavagem: ResumoPeriodoItem[];
+  /** Gastos por categoria (cozinha, funcionário…). */
+  gastosPorCategoria: ResumoPeriodoItem[];
 }
 
 export interface DiaComResumo extends Dia {
@@ -208,4 +222,48 @@ export const SAIDA_CATEGORIA_LABELS: Record<SaidaCategoria, string> = {
   lava_jato: "Lava-jato",
   custos_operacionais: "Custos operacionais",
   manutencao: "Manutenção",
+};
+
+export type FilaLavagemStatus =
+  | "aguardando"
+  | "em_andamento"
+  | "finalizado"
+  | "cancelado";
+
+export interface ClienteVeiculo {
+  id: string;
+  placa: string;
+  nome_proprietario: string;
+  whatsapp: string;
+  servico_preferido_id: string | null;
+  visitas: number;
+  created_at: string;
+  updated_at: string;
+}
+
+export interface FilaLavagemItem {
+  id: string;
+  cliente_veiculo_id: string | null;
+  placa: string;
+  nome_proprietario: string;
+  whatsapp: string;
+  servico_lavagem_id: string | null;
+  servico_nome: string;
+  servico_valor: number;
+  polimento?: boolean;
+  servico_valor_base?: number;
+  servico_extra_valor?: number;
+  servico_extra_descricao?: string | null;
+  entrada_id?: string | null;
+  status: FilaLavagemStatus;
+  created_at: string;
+  iniciado_at: string | null;
+  finalizado_at: string | null;
+}
+
+export const FILA_STATUS_LABELS: Record<FilaLavagemStatus, string> = {
+  aguardando: "Aguardando",
+  em_andamento: "Em andamento",
+  finalizado: "Finalizado",
+  cancelado: "Cancelado",
 };
