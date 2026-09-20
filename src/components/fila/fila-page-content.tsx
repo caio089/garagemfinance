@@ -19,6 +19,7 @@ import {
 import { toast } from "sonner";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
+import { LiveClock } from "@/components/layout/live-clock";
 import {
   formatCurrency,
   formatTime,
@@ -273,6 +274,10 @@ export function FilaPageContent() {
 
   return (
     <div className="mx-auto w-full max-w-lg space-y-5 pb-8 md:max-w-3xl">
+      <div className="flex items-center justify-center rounded-2xl border border-amber-400/20 bg-amber-400/[0.07] px-4 py-3 sm:justify-start">
+        <LiveClock />
+      </div>
+
       <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
         <div className="space-y-1 text-center sm:text-left">
           <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-amber-400/80">
@@ -441,7 +446,7 @@ export function FilaPageContent() {
 
       <p className="flex items-center justify-center gap-1.5 text-center text-[11px] text-zinc-600">
         <Clock3 className="h-3.5 w-3.5" />
-        Só cadastro e fila · painel financeiro em outra rota com login
+        Só cadastro e fila · painel financeiro em outra rota
       </p>
 
       <AnimatePresence>
