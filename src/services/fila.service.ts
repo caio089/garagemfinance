@@ -211,7 +211,7 @@ function inicioDoDiaLocalIso(): string {
   return inicio.toISOString();
 }
 
-/** Só carros do dia atual (fila reinicia a cada dia aberto). */
+/** Só carros do dia civil atual (agrupa por data/hora do registro). */
 export async function listarFilaAtiva(): Promise<FilaLavagemItem[]> {
   const { data, error } = await getSupabase()
     .from("fila_lavagem")
@@ -277,26 +277,8 @@ export async function atualizarStatusFila(
 }
 
 /**
- * Zera a fila operacional ao abrir o dia.
- * Cancela carros ainda lavando/aguardando. Histórico de clientes (placa) permanece.
- */
-export async function reiniciarFilaAoAbrirDia(): Promise<void> {
-  const agora = new Date().toISOString();
-
-  const { error } = await getSupabase()
-    .from("fila_lavagem")
-    .update({
-      status: "cancelado",
-      finalizado_at: agora,
-    })
-    .in("status", ["aguardando", "em_andamento"]);
-
-  if (error) throw error;
-}
-
-/**
- * Finaliza o carro na fila e lança a entrada no caixa do dia aberto
- * (relatórios, quantidade de lavagens, faturamento).
+ * Finaliza o carro na fila e lança a entrada no dia civil da compra
+ * (data/hora do registro — sem precisar abrir caixa).
  */
 export async function finalizarItemFila(id: string): Promise<{
   item: FilaLavagemItem;
@@ -325,13 +307,14 @@ export async function finalizarItemFila(id: string): Promise<{
     return { item, entrouNoRelatorio: true };
   }
 
-  const { buscarDiaAberto } = await import("@/services/dias.service");
+  const { dataCivilLocal, obterOuCriarDiaPorData } = await import(
+    "@/services/dias.service"
+  );
   const { criarEntrada } = await import("@/services/entradas.service");
 
-  const dia = await buscarDiaAberto();
-  if (!dia) {
-    return { item, entrouNoRelatorio: false };
-  }
+  // Usa a data em que o protocolo entrou na fila (dia da compra)
+  const dataCompra = dataCivilLocal(new Date(itemAtual.created_at));
+  const dia = await obterOuCriarDiaPorData(dataCompra);
 
   const temPolimento =
     Boolean(itemAtual.polimento) ||
@@ -388,10 +371,13 @@ export async function excluirItemFilaFinalizado(id: string): Promise<void> {
       // Continua excluindo da fila mesmo se a entrada já não existir
     }
   } else {
-    // Fallback: remove entrada do dia pela placa + descrição da fila (migration 010 ainda não aplicada)
+    // Fallback: remove entrada do dia da compra pela placa + descrição da fila
     try {
-      const { buscarDiaAberto } = await import("@/services/dias.service");
-      const dia = await buscarDiaAberto();
+      const { dataCivilLocal, buscarDiaPorData } = await import(
+        "@/services/dias.service"
+      );
+      const dataCompra = dataCivilLocal(new Date(item.created_at));
+      const dia = await buscarDiaPorData(dataCompra);
       if (dia) {
         const { data: entradas } = await getSupabase()
           .from("entradas")

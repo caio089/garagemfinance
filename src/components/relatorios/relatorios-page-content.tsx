@@ -26,7 +26,7 @@ import {
 import { calcularCaixaFinal } from "@/lib/financeiro";
 import { isSupabaseConfigured } from "@/lib/supabase";
 import { cn } from "@/lib/utils";
-import { buscarDiaAberto } from "@/services/dias.service";
+import { buscarDiaDeHoje, dataCivilLocal } from "@/services/dias.service";
 import { buscarEntradasDoDia } from "@/services/entradas.service";
 import { buscarSaidasDoDia } from "@/services/saidas.service";
 import {
@@ -90,7 +90,7 @@ export function RelatoriosPageContent() {
   const [saidas, setSaidas] = useState<Saida[]>([]);
   const [entradasPeriodo, setEntradasPeriodo] = useState<Entrada[]>([]);
   const [saidasPeriodo, setSaidasPeriodo] = useState<Saida[]>([]);
-  const [diaAbertoId, setDiaAbertoId] = useState<string | null>(null);
+  const [diaHojeId, setDiaHojeId] = useState<string | null>(null);
   const [diaModalId, setDiaModalId] = useState<string | null>(null);
 
   const [loading, setLoading] = useState(true);
@@ -116,14 +116,14 @@ export function RelatoriosPageContent() {
   const carregarAbaDia = useCallback(async () => {
     setLoading(true);
     try {
-      const [aberto, historico] = await Promise.all([
-        buscarDiaAberto(),
+      const [hoje, historico] = await Promise.all([
+        buscarDiaDeHoje(),
         buscarDiasComResumo(),
       ]);
-      setDiaAbertoId(aberto?.id ?? null);
+      setDiaHojeId(hoje?.id ?? null);
       setDiasHistorico(historico);
 
-      const inicial = aberto ?? historico[0] ?? null;
+      const inicial = hoje ?? historico[0] ?? null;
       setDiaAtivo(inicial);
       if (inicial) await carregarMovimentos(inicial.id);
       else {
@@ -242,7 +242,8 @@ export function RelatoriosPageContent() {
     return `${formatDate(periodoAplicado.inicio)} a ${formatDate(periodoAplicado.fim)}`;
   }, [aba, referencia, resumoPeriodo, periodoAplicado]);
 
-  const podeExcluir = !!diaAtivo && diaAtivo.id === diaAbertoId;
+  const podeExcluir =
+    !!diaAtivo && diaAtivo.data === dataCivilLocal();
 
   const totalEntradasDia = entradas.reduce((s, e) => s + Number(e.valor), 0);
   const totalSaidasDia = saidas.reduce((s, e) => s + Number(e.valor), 0);
@@ -341,7 +342,8 @@ export function RelatoriosPageContent() {
           <div className="flex flex-col items-center gap-3 py-12 text-zinc-600">
             <Inbox className="h-10 w-10" />
             <p className="text-center text-sm">
-              Nenhum dia registrado ainda. Inicie o dia no início para começar.
+              Nenhum dia registrado ainda. Os movimentos aparecem aqui assim que
+              você registrar uma entrada, saída ou finalizar um carro na fila.
             </p>
           </div>
         ) : (
@@ -354,9 +356,9 @@ export function RelatoriosPageContent() {
                 {formatDateLong(diaAtivo.data)}
               </p>
               <p className="mt-1 text-xs text-zinc-500">
-                {diaAtivo.id === diaAbertoId
-                  ? "Em andamento"
-                  : `Finalizado · ${formatDate(diaAtivo.data)}`}
+                {diaAtivo.data === dataCivilLocal()
+                  ? "Hoje"
+                  : formatDate(diaAtivo.data)}
               </p>
             </div>
 
@@ -367,28 +369,28 @@ export function RelatoriosPageContent() {
               />
             </div>
 
-            {(diaAbertoId || diasHistorico.length > 0) && (
+            {(diaHojeId || diasHistorico.length > 0) && (
               <div className="space-y-2">
                 <p className="flex items-center gap-1.5 text-xs font-semibold uppercase tracking-wider text-zinc-500">
                   <CalendarDays className="h-3.5 w-3.5" />
                   Escolher dia
                 </p>
                 <div className="flex gap-2 overflow-x-auto pb-1">
-                  {diaAbertoId && (
+                  {diaHojeId && (
                     <button
                       type="button"
                       onClick={async () => {
-                        const aberto = await buscarDiaAberto();
-                        if (aberto) await selecionarDia(aberto);
+                        const hoje = await buscarDiaDeHoje();
+                        if (hoje) await selecionarDia(hoje);
                       }}
                       className={cn(
                         "shrink-0 rounded-xl border px-3 py-2 text-xs font-bold transition-colors",
-                        diaAtivo.id === diaAbertoId
+                        diaAtivo.id === diaHojeId
                           ? "border-emerald-400/40 bg-emerald-500/15 text-emerald-400"
                           : "border-white/[0.06] bg-card/80 text-zinc-400"
                       )}
                     >
-                      Hoje (aberto)
+                      Hoje
                     </button>
                   )}
                   {diasHistorico.slice(0, 20).map((dia) => (

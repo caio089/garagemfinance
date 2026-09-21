@@ -11,13 +11,13 @@ import {
   maskCurrencyInput,
   parseCurrencyInput,
 } from "@/lib/format";
-import { buscarDiaAberto } from "@/services/dias.service";
+import { obterOuCriarDiaPorData } from "@/services/dias.service";
 import { calcularValorLavagem, criarEntrada } from "@/services/entradas.service";
 import { buscarPrecosLavagem } from "@/services/precos.service";
 import { listarServicosLavagem } from "@/services/servicos-lavagem.service";
 import type { ServicoLavagem } from "@/types";
 import { toast } from "sonner";
-import { AlertCircle, Car, CircleDollarSign, Settings, UtensilsCrossed } from "lucide-react";
+import { Car, CircleDollarSign, Settings, UtensilsCrossed } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { RestauranteMesas } from "@/components/entrada/restaurante-mesas";
 
@@ -39,7 +39,6 @@ export function EntradaForm() {
   const [descricaoExtra, setDescricaoExtra] = useState("");
   const [loading, setLoading] = useState(false);
   const [carregando, setCarregando] = useState(true);
-  const [semDia, setSemDia] = useState(false);
 
   useEffect(() => {
     Promise.all([listarServicosLavagem(true), buscarPrecosLavagem()])
@@ -99,12 +98,7 @@ export function EntradaForm() {
 
       setLoading(true);
       try {
-        const dia = await buscarDiaAberto();
-        if (!dia) {
-          setSemDia(true);
-          toast.error("Inicie o dia antes de registrar entradas.");
-          return;
-        }
+        const dia = await obterOuCriarDiaPorData();
 
         await criarEntrada({
           diaId: dia.id,
@@ -146,12 +140,7 @@ export function EntradaForm() {
 
     setLoading(true);
     try {
-      const dia = await buscarDiaAberto();
-      if (!dia) {
-        setSemDia(true);
-        toast.error("Inicie o dia antes de registrar entradas.");
-        return;
-      }
+      const dia = await obterOuCriarDiaPorData();
 
       await criarEntrada({
         diaId: dia.id,
@@ -176,26 +165,6 @@ export function EntradaForm() {
       setLoading(false);
     }
   };
-
-  if (semDia) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-12 text-center">
-        <AlertCircle className="h-12 w-12 text-amber-400" />
-        <div>
-          <p className="text-lg font-semibold text-white">Dia não iniciado</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Vá ao início e clique em &quot;Iniciar Dia&quot; para começar.
-          </p>
-        </div>
-        <Button
-          onClick={() => router.push("/")}
-          className="mt-2 rounded-xl bg-amber-400 font-bold text-black hover:bg-amber-300"
-        >
-          Ir para o início
-        </Button>
-      </div>
-    );
-  }
 
   if (carregando) {
     return (
@@ -264,7 +233,7 @@ export function EntradaForm() {
       </div>
 
       {tipoServico === "restaurante" && (
-        <RestauranteMesas onPrecisaDia={() => setSemDia(true)} />
+        <RestauranteMesas />
       )}
 
       {tipoServico === "avulsa" && (

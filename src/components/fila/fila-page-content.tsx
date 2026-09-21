@@ -226,12 +226,10 @@ export function FilaPageContent() {
       setAba("finalizados");
       if (entrouNoRelatorio) {
         toast.success(
-          "Lavagem finalizada e lançada no relatório do dia."
+          "Lavagem finalizada e lançada no relatório do dia da compra."
         );
       } else {
-        toast.warning(
-          "Finalizado na fila. Abra o dia no financeiro para entrar no relatório."
-        );
+        toast.success("Lavagem finalizada na fila.");
       }
     } catch {
       toast.error("Não foi possível finalizar.");

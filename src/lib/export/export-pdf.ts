@@ -184,8 +184,7 @@ function exportarPdfDiario(data: Extract<RelatorioExportData, { tipo: "diario" }
     saidasTotal
   );
   const servicos = contarServicos(data.entradas);
-  const status =
-    data.dia.status === "finalizado" ? "Finalizado" : "Em andamento";
+  const status = "Agrupado por data";
 
   let y = drawHeader(
     doc,

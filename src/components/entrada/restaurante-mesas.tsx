@@ -7,7 +7,7 @@ import { Button } from "@/components/ui/button";
 import { formatCurrency } from "@/lib/format";
 import { cn } from "@/lib/utils";
 import { listarItensAlimentacao } from "@/services/alimentacao.service";
-import { buscarDiaAberto } from "@/services/dias.service";
+import { obterOuCriarDiaPorData } from "@/services/dias.service";
 import {
   adicionarItemNaMesa,
   adicionarMesa,
@@ -34,11 +34,7 @@ import {
 
 type ConsumoComItem = MesaConsumo & { item: ItemAlimentacao };
 
-interface RestauranteMesasProps {
-  onPrecisaDia: () => void;
-}
-
-export function RestauranteMesas({ onPrecisaDia }: RestauranteMesasProps) {
+export function RestauranteMesas() {
   const [mesas, setMesas] = useState<MesaComStatus[]>([]);
   const [itens, setItens] = useState<ItemAlimentacao[]>([]);
   const [loading, setLoading] = useState(true);
@@ -131,12 +127,7 @@ export function RestauranteMesas({ onPrecisaDia }: RestauranteMesasProps) {
     if (!mesaAtiva) return;
     setBusy(true);
     try {
-      const dia = await buscarDiaAberto();
-      if (!dia) {
-        onPrecisaDia();
-        toast.error("Inicie o dia antes de abrir uma mesa.");
-        return;
-      }
+      const dia = await obterOuCriarDiaPorData();
       await iniciarServicoMesa(mesaAtiva.id, dia.id);
       await carregar();
       toast.success(`Serviço da mesa ${mesaAtiva.numero} iniciado.`);
@@ -182,12 +173,7 @@ export function RestauranteMesas({ onPrecisaDia }: RestauranteMesasProps) {
     if (!mesaAtiva?.servico) return;
     setBusy(true);
     try {
-      const dia = await buscarDiaAberto();
-      if (!dia) {
-        onPrecisaDia();
-        toast.error("Inicie o dia antes de finalizar a mesa.");
-        return;
-      }
+      const dia = await obterOuCriarDiaPorData();
 
       // Recarrega status atual da mesa
       const lista = await listarMesasComStatus();

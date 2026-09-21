@@ -1,53 +1,83 @@
 import { calcularCaixaFinal, calcularLucro } from "@/lib/financeiro";
+import { toDateString } from "@/lib/format";
 import { getSupabase } from "@/lib/supabase";
-import { reiniciarFilaAoAbrirDia } from "@/services/fila.service";
 import type { Dia, ResumoDia } from "@/types";
 
-export async function buscarDiaAberto(): Promise<Dia | null> {
-  const { data, error } = await getSupabase()
+/** Data civil local no formato YYYY-MM-DD. */
+export function dataCivilLocal(ref: Date = new Date()): string {
+  return toDateString(ref);
+}
+
+export async function buscarDiaPorData(data: string): Promise<Dia | null> {
+  const { data: dia, error } = await getSupabase()
     .from("dias")
     .select("*")
-    .eq("status", "iniciado")
-    .order("created_at", { ascending: false })
-    .limit(1)
+    .eq("data", data)
     .maybeSingle();
 
   if (error) throw error;
-  return data;
+  return dia;
 }
 
-export async function iniciarDia(caixaInicial: number): Promise<Dia> {
-  const diaAberto = await buscarDiaAberto();
-  if (diaAberto) {
-    throw new Error("Já existe um dia em aberto.");
+/** Dia de hoje (calendário local), se já existir movimento/registro. */
+export async function buscarDiaDeHoje(): Promise<Dia | null> {
+  return buscarDiaPorData(dataCivilLocal());
+}
+
+/**
+ * @deprecated Use buscarDiaDeHoje / obterOuCriarDiaPorData.
+ * Mantido para compatibilidade: retorna o dia civil de hoje.
+ */
+export async function buscarDiaAberto(): Promise<Dia | null> {
+  return buscarDiaDeHoje();
+}
+
+/**
+ * Garante um dia para a data informada (padrão: hoje).
+ * Não exige abrir/fechar caixa — cria sob demanda na primeira compra.
+ */
+export async function obterOuCriarDiaPorData(
+  data?: string,
+  caixaInicial?: number
+): Promise<Dia> {
+  const dataAlvo = data ?? dataCivilLocal();
+  const existente = await buscarDiaPorData(dataAlvo);
+  if (existente) return existente;
+
+  let caixa = caixaInicial;
+  if (caixa === undefined) {
+    const anterior = await buscarUltimoDiaComCaixa(dataAlvo);
+    caixa =
+      anterior?.caixa_final != null
+        ? Number(anterior.caixa_final)
+        : Number(anterior?.caixa_inicial ?? 0);
   }
 
-  const { data, error } = await getSupabase()
+  const { data: criado, error } = await getSupabase()
     .from("dias")
     .insert({
-      data: new Date().toISOString().split("T")[0],
-      caixa_inicial: caixaInicial,
+      data: dataAlvo,
+      caixa_inicial: Math.max(0, Number(caixa) || 0),
       status: "iniciado",
     })
     .select()
     .single();
 
   if (error) {
-    // Índice único: evita 2 dias abertos ao mesmo tempo
+    // Corrida: outro insert na mesma data
     if (error.code === "23505") {
-      throw new Error("Já existe um dia em aberto.");
+      const deNovo = await buscarDiaPorData(dataAlvo);
+      if (deNovo) return deNovo;
     }
     throw error;
   }
 
-  // Todo dia começa com fila limpa (carros do dia anterior somem da tela)
-  try {
-    await reiniciarFilaAoAbrirDia();
-  } catch {
-    // Não impede abrir o dia se a fila ainda não existir no banco
-  }
+  return criado;
+}
 
-  return data;
+/** @deprecated Abrir caixa não é mais necessário. */
+export async function iniciarDia(caixaInicial: number): Promise<Dia> {
+  return obterOuCriarDiaPorData(dataCivilLocal(), caixaInicial);
 }
 
 export async function calcularResumoDia(diaId: string): Promise<ResumoDia> {
@@ -96,19 +126,27 @@ export async function calcularResumoDia(diaId: string): Promise<ResumoDia> {
   };
 }
 
-export async function finalizarDia(diaId: string): Promise<ResumoDia> {
+/**
+ * Atualiza o caixa previsto do dia (sem “fechar” operação).
+ * Mantido para relatórios/exportação.
+ */
+export async function atualizarCaixaPrevisto(diaId: string): Promise<ResumoDia> {
   const resumo = await calcularResumoDia(diaId);
 
   const { error } = await getSupabase()
     .from("dias")
     .update({
       caixa_final: resumo.caixaFinal,
-      status: "finalizado",
     })
     .eq("id", diaId);
 
   if (error) throw error;
   return resumo;
+}
+
+/** @deprecated Fechar caixa não é mais necessário. */
+export async function finalizarDia(diaId: string): Promise<ResumoDia> {
+  return atualizarCaixaPrevisto(diaId);
 }
 
 export async function buscarUltimosDias(limit = 7): Promise<Dia[]> {
@@ -122,12 +160,25 @@ export async function buscarUltimosDias(limit = 7): Promise<Dia[]> {
   return data ?? [];
 }
 
-/** Último dia finalizado (com caixa_final), para sugerir o caixa inicial. */
+async function buscarUltimoDiaComCaixa(antesDeData: string): Promise<Dia | null> {
+  const { data, error } = await getSupabase()
+    .from("dias")
+    .select("*")
+    .lt("data", antesDeData)
+    .order("data", { ascending: false })
+    .order("created_at", { ascending: false })
+    .limit(1)
+    .maybeSingle();
+
+  if (error) throw error;
+  return data;
+}
+
+/** Último dia com caixa_final, para sugerir saldo inicial (legado). */
 export async function buscarUltimoDiaFinalizado(): Promise<Dia | null> {
   const { data, error } = await getSupabase()
     .from("dias")
     .select("*")
-    .eq("status", "finalizado")
     .not("caixa_final", "is", null)
     .order("data", { ascending: false })
     .order("created_at", { ascending: false })

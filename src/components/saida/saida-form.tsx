@@ -6,12 +6,12 @@ import { motion } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Label } from "@/components/ui/label";
 import { maskCurrencyInput, parseCurrencyInput } from "@/lib/format";
-import { buscarDiaAberto } from "@/services/dias.service";
+import { obterOuCriarDiaPorData } from "@/services/dias.service";
 import { criarSaida } from "@/services/saidas.service";
 import { SAIDA_CATEGORIA_LABELS } from "@/types";
 import type { SaidaCategoria } from "@/types";
 import { toast } from "sonner";
-import { AlertCircle, ChefHat, Droplets, Users, Wrench, Zap } from "lucide-react";
+import { ChefHat, Droplets, Users, Wrench, Zap } from "lucide-react";
 import { cn } from "@/lib/utils";
 
 const categorias: {
@@ -38,7 +38,6 @@ export function SaidaForm() {
   const [valor, setValor] = useState("");
   const [descricao, setDescricao] = useState("");
   const [loading, setLoading] = useState(false);
-  const [semDia, setSemDia] = useState(false);
 
   const handleSubmit = async () => {
     const valorNumerico = parseCurrencyInput(valor);
@@ -49,12 +48,7 @@ export function SaidaForm() {
 
     setLoading(true);
     try {
-      const dia = await buscarDiaAberto();
-      if (!dia) {
-        setSemDia(true);
-        toast.error("Inicie o dia antes de registrar saídas.");
-        return;
-      }
+      const dia = await obterOuCriarDiaPorData();
 
       await criarSaida({
         diaId: dia.id,
@@ -76,26 +70,6 @@ export function SaidaForm() {
       setLoading(false);
     }
   };
-
-  if (semDia) {
-    return (
-      <div className="flex flex-col items-center gap-4 py-12 text-center">
-        <AlertCircle className="h-12 w-12 text-amber-400" />
-        <div>
-          <p className="text-lg font-semibold text-white">Dia não iniciado</p>
-          <p className="mt-1 text-sm text-zinc-500">
-            Vá ao início e clique em &quot;Iniciar Dia&quot; para começar.
-          </p>
-        </div>
-        <Button
-          onClick={() => router.push("/")}
-          className="mt-2 rounded-xl bg-amber-400 font-bold text-black hover:bg-amber-300"
-        >
-          Ir para o início
-        </Button>
-      </div>
-    );
-  }
 
   return (
     <div className="space-y-5">

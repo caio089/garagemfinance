@@ -3,13 +3,8 @@
 import { motion } from "framer-motion";
 import { Badge } from "@/components/ui/badge";
 import { LiveClock } from "@/components/layout/live-clock";
-import type { Dia } from "@/types";
 
-interface HeaderProps {
-  diaAberto: Dia | null;
-}
-
-export function Header({ diaAberto }: HeaderProps) {
+export function Header() {
   return (
     <motion.header
       initial={{ opacity: 0, y: -10 }}
@@ -28,18 +23,10 @@ export function Header({ diaAberto }: HeaderProps) {
         </div>
         <Badge
           variant="outline"
-          className={
-            diaAberto
-              ? "border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-400"
-              : "border-zinc-700/80 bg-zinc-800/60 px-2.5 py-1 text-zinc-400"
-          }
+          className="border-emerald-500/30 bg-emerald-500/10 px-2.5 py-1 text-emerald-400"
         >
-          <span
-            className={`mr-1.5 inline-block h-2 w-2 rounded-full ${
-              diaAberto ? "bg-emerald-400 animate-pulse" : "bg-zinc-500"
-            }`}
-          />
-          {diaAberto ? "Aberto" : "Fechado"}
+          <span className="mr-1.5 inline-block h-2 w-2 animate-pulse rounded-full bg-emerald-400" />
+          Por data
         </Badge>
       </div>
     </motion.header>
