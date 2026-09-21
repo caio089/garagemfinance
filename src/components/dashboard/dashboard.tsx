@@ -6,7 +6,7 @@ import { QuickActions } from "@/components/dashboard/quick-actions";
 import { MetricCards } from "@/components/dashboard/metric-cards";
 import { RecentMovements } from "@/components/dashboard/recent-movements";
 import { DashboardCharts } from "@/components/dashboard/dashboard-charts";
-import { buscarDiaDeHoje } from "@/services/dias.service";
+import { obterOuCriarDiaPorData } from "@/services/dias.service";
 import {
   buscarEntradasDoDia,
   buscarEntradasRecentes,
@@ -61,52 +61,39 @@ export function Dashboard() {
 
     setLoading(true);
     try {
-      const dia = await buscarDiaDeHoje();
+      // Garante o dia de hoje com o saldo carregado do dia anterior
+      const dia = await obterOuCriarDiaPorData();
 
-      if (dia) {
-        const [
-          entradasRecentes,
-          saidasRecentes,
-          totalE,
-          totalS,
-          todasE,
-          todasS,
-        ] = await Promise.all([
-          buscarEntradasRecentes(dia.id),
-          buscarSaidasRecentes(dia.id),
-          totalEntradasDoDia(dia.id),
-          totalSaidasDoDia(dia.id),
-          buscarEntradasDoDia(dia.id),
-          buscarSaidasDoDia(dia.id),
-        ]);
+      const [
+        entradasRecentes,
+        saidasRecentes,
+        totalE,
+        totalS,
+        todasE,
+        todasS,
+      ] = await Promise.all([
+        buscarEntradasRecentes(dia.id),
+        buscarSaidasRecentes(dia.id),
+        totalEntradasDoDia(dia.id),
+        totalSaidasDoDia(dia.id),
+        buscarEntradasDoDia(dia.id),
+        buscarSaidasDoDia(dia.id),
+      ]);
 
-        setEntradas(entradasRecentes);
-        setSaidas(saidasRecentes);
-        setTodasEntradas(todasE);
-        setTodasSaidas(todasS);
+      setEntradas(entradasRecentes);
+      setSaidas(saidasRecentes);
+      setTodasEntradas(todasE);
+      setTodasSaidas(todasS);
 
-        const caixaInicial = Number(dia.caixa_inicial);
-        const saldoDiario = calcularSaldoDiario(totalE, totalS);
-        setMetrics({
-          caixaInicial,
-          totalEntradas: totalE,
-          totalSaidas: totalS,
-          saldoDiario,
-          valorEmCaixa: calcularValorEmCaixa(caixaInicial, totalE, totalS),
-        });
-      } else {
-        setEntradas([]);
-        setSaidas([]);
-        setTodasEntradas([]);
-        setTodasSaidas([]);
-        setMetrics({
-          caixaInicial: 0,
-          totalEntradas: 0,
-          totalSaidas: 0,
-          saldoDiario: 0,
-          valorEmCaixa: 0,
-        });
-      }
+      const caixaInicial = Number(dia.caixa_inicial);
+      const saldoDiario = calcularSaldoDiario(totalE, totalS);
+      setMetrics({
+        caixaInicial,
+        totalEntradas: totalE,
+        totalSaidas: totalS,
+        saldoDiario,
+        valorEmCaixa: calcularValorEmCaixa(caixaInicial, totalE, totalS),
+      });
     } catch {
       setEntradas([]);
       setSaidas([]);

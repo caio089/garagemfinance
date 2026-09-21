@@ -34,7 +34,8 @@ export async function buscarDiaAberto(): Promise<Dia | null> {
 
 /**
  * Garante um dia para a data informada (padrão: hoje).
- * Não exige abrir/fechar caixa — cria sob demanda na primeira compra.
+ * Não exige abrir/fechar caixa — cria sob demanda e carrega o saldo
+ * do dia anterior (caixa inicial + entradas − saídas).
  */
 export async function obterOuCriarDiaPorData(
   data?: string,
@@ -42,15 +43,26 @@ export async function obterOuCriarDiaPorData(
 ): Promise<Dia> {
   const dataAlvo = data ?? dataCivilLocal();
   const existente = await buscarDiaPorData(dataAlvo);
-  if (existente) return existente;
+  if (existente) {
+    // Corrige dias criados sem carregar o saldo (após remoção do abrir caixa)
+    if (Number(existente.caixa_inicial) === 0 && caixaInicial === undefined) {
+      const carregado = await calcularCaixaCarregado(dataAlvo);
+      if (carregado > 0) {
+        const { data: corrigido, error: errCorrige } = await getSupabase()
+          .from("dias")
+          .update({ caixa_inicial: carregado })
+          .eq("id", existente.id)
+          .select()
+          .single();
+        if (!errCorrige && corrigido) return corrigido;
+      }
+    }
+    return existente;
+  }
 
   let caixa = caixaInicial;
   if (caixa === undefined) {
-    const anterior = await buscarUltimoDiaComCaixa(dataAlvo);
-    caixa =
-      anterior?.caixa_final != null
-        ? Number(anterior.caixa_final)
-        : Number(anterior?.caixa_inicial ?? 0);
+    caixa = await calcularCaixaCarregado(dataAlvo);
   }
 
   const { data: criado, error } = await getSupabase()
@@ -73,6 +85,50 @@ export async function obterOuCriarDiaPorData(
   }
 
   return criado;
+}
+
+/**
+ * Valor em caixa de um dia = caixa_inicial + entradas − saídas.
+ * Usa caixa_final gravado quando existir.
+ */
+export async function calcularValorCaixaDoDia(dia: Dia): Promise<number> {
+  if (dia.caixa_final != null) {
+    return Number(dia.caixa_final);
+  }
+
+  const { data: entradas, error: errE } = await getSupabase()
+    .from("entradas")
+    .select("valor")
+    .eq("dia_id", dia.id);
+  if (errE) throw errE;
+
+  const { data: saidas, error: errS } = await getSupabase()
+    .from("saidas")
+    .select("valor")
+    .eq("dia_id", dia.id);
+  if (errS) throw errS;
+
+  const totalE = entradas?.reduce((sum, e) => sum + Number(e.valor), 0) ?? 0;
+  const totalS = saidas?.reduce((sum, s) => sum + Number(s.valor), 0) ?? 0;
+  return calcularCaixaFinal(Number(dia.caixa_inicial), totalE, totalS);
+}
+
+/** Saldo a carregar como caixa inicial do próximo dia. */
+async function calcularCaixaCarregado(antesDeData: string): Promise<number> {
+  const anterior = await buscarUltimoDiaComCaixa(antesDeData);
+  if (!anterior) return 0;
+
+  const valor = await calcularValorCaixaDoDia(anterior);
+
+  // Grava o previsto no dia anterior para o próximo carregamento ser rápido
+  if (anterior.caixa_final == null) {
+    await getSupabase()
+      .from("dias")
+      .update({ caixa_final: valor })
+      .eq("id", anterior.id);
+  }
+
+  return Math.max(0, valor);
 }
 
 /** @deprecated Abrir caixa não é mais necessário. */
