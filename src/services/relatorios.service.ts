@@ -19,31 +19,42 @@ import type {
 } from "@/types";
 import { SAIDA_CATEGORIA_LABELS } from "@/types";
 
-export async function buscarDiasFinalizados(): Promise<Dia[]> {
+export async function buscarDiasParaRelatorio(): Promise<Dia[]> {
   const { data, error } = await getSupabase()
     .from("dias")
     .select("*")
-    .eq("status", "finalizado")
     .order("data", { ascending: false });
 
   if (error) throw error;
   return data ?? [];
 }
 
-export async function buscarDiasFinalizadosPorPeriodo(
+/** @deprecated Use buscarDiasParaRelatorio — não há mais fechar caixa. */
+export async function buscarDiasFinalizados(): Promise<Dia[]> {
+  return buscarDiasParaRelatorio();
+}
+
+export async function buscarDiasPorPeriodo(
   inicio: string,
   fim: string
 ): Promise<Dia[]> {
   const { data, error } = await getSupabase()
     .from("dias")
     .select("*")
-    .eq("status", "finalizado")
     .gte("data", inicio)
     .lte("data", fim)
     .order("data", { ascending: false });
 
   if (error) throw error;
   return data ?? [];
+}
+
+/** @deprecated Use buscarDiasPorPeriodo — não há mais fechar caixa. */
+export async function buscarDiasFinalizadosPorPeriodo(
+  inicio: string,
+  fim: string
+): Promise<Dia[]> {
+  return buscarDiasPorPeriodo(inicio, fim);
 }
 
 export async function buscarEntradasPorDias(
@@ -177,7 +188,7 @@ export function montarResumoDeMovimentos(
 }
 
 export async function buscarDiasComResumo(): Promise<DiaComResumo[]> {
-  const dias = await buscarDiasFinalizados();
+  const dias = await buscarDiasParaRelatorio();
   const ids = dias.map((d) => d.id);
   const [entradas, saidas] = await Promise.all([
     buscarEntradasPorDias(ids),
@@ -190,7 +201,7 @@ export async function buscarDiasComResumoPorPeriodo(
   inicio: string,
   fim: string
 ): Promise<DiaComResumo[]> {
-  const dias = await buscarDiasFinalizadosPorPeriodo(inicio, fim);
+  const dias = await buscarDiasPorPeriodo(inicio, fim);
   const ids = dias.map((d) => d.id);
   const [entradas, saidas] = await Promise.all([
     buscarEntradasPorDias(ids),
@@ -204,7 +215,7 @@ export async function buscarMovimentosPorPeriodo(
   inicio: string,
   fim: string
 ): Promise<{ entradas: Entrada[]; saidas: Saida[] }> {
-  const dias = await buscarDiasFinalizadosPorPeriodo(inicio, fim);
+  const dias = await buscarDiasPorPeriodo(inicio, fim);
   const ids = dias.map((d) => d.id);
   const [entradas, saidas] = await Promise.all([
     buscarEntradasPorDias(ids),
@@ -236,7 +247,7 @@ export async function buscarResumoPorIntervalo(
   const [inicioNorm, fimNorm] =
     inicio <= fim ? [inicio, fim] : [fim, inicio];
 
-  const dias = await buscarDiasFinalizadosPorPeriodo(inicioNorm, fimNorm);
+  const dias = await buscarDiasPorPeriodo(inicioNorm, fimNorm);
   const ids = dias.map((d) => d.id);
   const [entradas, saidas] = await Promise.all([
     buscarEntradasPorDias(ids),
