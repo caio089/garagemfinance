@@ -1,6 +1,22 @@
 import { getSupabase } from "@/lib/supabase";
 import type { ClienteVeiculo, FilaLavagemItem, FilaLavagemStatus } from "@/types";
 
+export type ModeloFila = "hatch" | "sedan" | "suv" | "camionete";
+
+export const MODELO_FILA_OPCOES: { value: ModeloFila; label: string }[] = [
+  { value: "hatch", label: "Hatch" },
+  { value: "sedan", label: "Sedan" },
+  { value: "suv", label: "SUV" },
+  { value: "camionete", label: "Caminhonete" },
+];
+
+export const MODELO_FILA_LABELS: Record<ModeloFila, string> = {
+  hatch: "Hatch",
+  sedan: "Sedan",
+  suv: "SUV",
+  camionete: "Caminhonete",
+};
+
 export function normalizarPlaca(placa: string): string {
   return placa.toUpperCase().replace(/[^A-Z0-9]/g, "").slice(0, 7);
 }
@@ -132,10 +148,11 @@ export function montarDescricaoServicoFila(params: {
 }
 
 export async function adicionarNaFila(params: {
-  placa: string;
+  /** Modelo do veículo (substitui a placa na fila operacional). */
+  modelo: ModeloFila;
   nomeProprietario: string;
   whatsapp: string;
-  servicoLavagemId: string;
+  servicoLavagemId?: string | null;
   servicoNome: string;
   /** Valor do serviço cadastrado (sem polimento/extra). */
   servicoValorBase?: number;
@@ -145,12 +162,13 @@ export async function adicionarNaFila(params: {
   servicoExtraValor?: number;
   servicoExtraDescricao?: string;
 }): Promise<FilaLavagemItem> {
-  const cliente = await upsertClienteVeiculo({
-    placa: params.placa,
-    nomeProprietario: params.nomeProprietario,
-    whatsapp: params.whatsapp,
-    servicoPreferidoId: params.servicoLavagemId,
-  });
+  const nome = params.nomeProprietario.trim();
+  const whatsapp = normalizarWhatsapp(params.whatsapp);
+  const modeloLabel = MODELO_FILA_LABELS[params.modelo];
+
+  if (!nome) throw new Error("Informe o nome do proprietário.");
+  if (whatsapp.length < 10) throw new Error("Informe um WhatsApp válido.");
+  if (!modeloLabel) throw new Error("Selecione o modelo do veículo.");
 
   const agora = new Date().toISOString();
   const servicoNome = montarDescricaoServicoFila({
@@ -167,11 +185,11 @@ export async function adicionarNaFila(params: {
   );
 
   const payloadBase = {
-    cliente_veiculo_id: cliente.id,
-    placa: cliente.placa,
-    nome_proprietario: cliente.nome_proprietario,
-    whatsapp: cliente.whatsapp,
-    servico_lavagem_id: params.servicoLavagemId,
+    cliente_veiculo_id: null as string | null,
+    placa: modeloLabel.toUpperCase(),
+    nome_proprietario: nome,
+    whatsapp,
+    servico_lavagem_id: params.servicoLavagemId || null,
     servico_nome: servicoNome,
     servico_valor: Math.max(0, params.servicoValor),
     status: "em_andamento" as const,

@@ -26,7 +26,7 @@ type TipoServico = "lavagem" | "restaurante" | "avulsa";
 export function EntradaForm() {
   const router = useRouter();
   const [tipoServico, setTipoServico] = useState<TipoServico>("lavagem");
-  const [servicoId, setServicoId] = useState<string>("");
+  const [servicoIds, setServicoIds] = useState<string[]>([]);
   const [servicos, setServicos] = useState<ServicoLavagem[]>([]);
   const [precoPolimento, setPrecoPolimento] = useState(10);
   const [polimento, setPolimento] = useState(false);
@@ -45,16 +45,32 @@ export function EntradaForm() {
       .then(([lista, precos]) => {
         setServicos(lista);
         setPrecoPolimento(precos.polimento);
-        if (lista.length > 0) setServicoId(lista[0].id);
+        if (lista.length > 0) setServicoIds([lista[0].id]);
       })
       .catch(() => toast.error("Erro ao carregar serviços."))
       .finally(() => setCarregando(false));
   }, []);
 
-  const servicoSelecionado = useMemo(
-    () => servicos.find((s) => s.id === servicoId) ?? null,
-    [servicos, servicoId]
+  const servicosSelecionados = useMemo(
+    () => servicos.filter((s) => servicoIds.includes(s.id)),
+    [servicos, servicoIds]
   );
+
+  const nomesServicos = useMemo(
+    () => servicosSelecionados.map((s) => s.nome).join(" + ") || "—",
+    [servicosSelecionados]
+  );
+
+  const valorServicos = useMemo(
+    () => servicosSelecionados.reduce((sum, s) => sum + Number(s.valor), 0),
+    [servicosSelecionados]
+  );
+
+  const alternarServico = (id: string) => {
+    setServicoIds((atual) =>
+      atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]
+    );
+  };
 
   const desconto =
     tipoServico === "lavagem" ? parseCurrencyInput(descontoInput) : 0;
@@ -67,11 +83,11 @@ export function EntradaForm() {
     if (tipoServico === "avulsa") {
       return { base: valorAvulsa, total: valorAvulsa };
     }
-    if (tipoServico !== "lavagem" || !servicoSelecionado) {
+    if (tipoServico !== "lavagem" || servicosSelecionados.length === 0) {
       return { base: 0, total: 0 };
     }
     return calcularValorLavagem(
-      servicoSelecionado.valor,
+      valorServicos,
       polimento,
       precoPolimento,
       desconto,
@@ -79,7 +95,8 @@ export function EntradaForm() {
     );
   }, [
     tipoServico,
-    servicoSelecionado,
+    servicosSelecionados.length,
+    valorServicos,
     polimento,
     precoPolimento,
     desconto,
@@ -117,8 +134,8 @@ export function EntradaForm() {
       return;
     }
 
-    if (!servicoSelecionado) {
-      toast.error("Cadastre um tipo de serviço em Cadastro.");
+    if (servicosSelecionados.length === 0) {
+      toast.error("Selecione ao menos um tipo de serviço.");
       return;
     }
     if (!placa.trim()) {
@@ -150,9 +167,9 @@ export function EntradaForm() {
         placa,
         modelo,
         descricao: descricao || undefined,
-        servicoLavagemId: servicoSelecionado.id,
-        nomeServico: servicoSelecionado.nome,
-        valorPersonalizado: servicoSelecionado.valor,
+        servicoLavagemId: servicosSelecionados[0].id,
+        nomeServico: nomesServicos,
+        valorPersonalizado: valorServicos,
         servicoExtraValor: servicoExtra > 0 ? servicoExtra : undefined,
         servicoExtraDescricao:
           servicoExtra > 0 ? descricaoExtra.trim() : undefined,
@@ -313,7 +330,10 @@ export function EntradaForm() {
           className="space-y-3"
         >
           <Label className="block text-center text-zinc-400">
-            Tipo de serviço
+            Tipo de serviço{" "}
+            <span className="font-normal text-zinc-500">
+              (pode marcar mais de um)
+            </span>
           </Label>
 
           {servicos.length === 0 ? (
@@ -332,40 +352,39 @@ export function EntradaForm() {
             </div>
           ) : (
             <div className="space-y-2">
-              {servicos.map((servico) => (
-                <button
-                  key={servico.id}
-                  type="button"
-                  onClick={() => setServicoId(servico.id)}
-                  className={cn(
-                    "flex min-h-14 w-full items-center justify-between rounded-2xl border-2 px-4 py-3.5 transition-all active:scale-[0.99]",
-                    servicoId === servico.id
-                      ? "border-emerald-400 bg-emerald-500/15"
-                      : "border-zinc-800 bg-zinc-900"
-                  )}
-                >
-                  <span
+              {servicos.map((servico) => {
+                const ativo = servicoIds.includes(servico.id);
+                return (
+                  <button
+                    key={servico.id}
+                    type="button"
+                    onClick={() => alternarServico(servico.id)}
                     className={cn(
-                      "font-semibold",
-                      servicoId === servico.id
-                        ? "text-emerald-400"
-                        : "text-white"
+                      "flex min-h-14 w-full items-center justify-between rounded-2xl border-2 px-4 py-3.5 transition-all active:scale-[0.99]",
+                      ativo
+                        ? "border-emerald-400 bg-emerald-500/15"
+                        : "border-zinc-800 bg-zinc-900"
                     )}
                   >
-                    {servico.nome}
-                  </span>
-                  <span
-                    className={cn(
-                      "text-base font-bold",
-                      servicoId === servico.id
-                        ? "text-emerald-300"
-                        : "text-zinc-400"
-                    )}
-                  >
-                    {formatCurrency(servico.valor)}
-                  </span>
-                </button>
-              ))}
+                    <span
+                      className={cn(
+                        "font-semibold",
+                        ativo ? "text-emerald-400" : "text-white"
+                      )}
+                    >
+                      {servico.nome}
+                    </span>
+                    <span
+                      className={cn(
+                        "text-base font-bold",
+                        ativo ? "text-emerald-300" : "text-zinc-400"
+                      )}
+                    >
+                      {formatCurrency(servico.valor)}
+                    </span>
+                  </button>
+                );
+              })}
             </div>
           )}
 
@@ -523,7 +542,7 @@ export function EntradaForm() {
               {formatCurrency(valor)}
             </p>
             <p className="mt-1 text-xs text-zinc-500">
-              {servicoSelecionado?.nome ?? "—"}
+              {nomesServicos}
               {polimento ? " + Polimento" : ""}
               {servicoExtra > 0
                 ? ` + Extra ${formatCurrency(servicoExtra)}`
