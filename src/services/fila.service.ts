@@ -148,11 +148,12 @@ export function montarDescricaoServicoFila(params: {
 }
 
 export async function adicionarNaFila(params: {
-  /** Modelo do veículo (substitui a placa na fila operacional). */
-  modelo: ModeloFila;
+  /** Nome real do carro (ex.: Gol, Civic) — aparece na fila. */
+  nomeCarro: string;
   nomeProprietario: string;
   whatsapp: string;
   servicoLavagemId?: string | null;
+  /** Tipos de serviço (Hatch, SUV…) — vão para o relatório. */
   servicoNome: string;
   /** Valor do serviço cadastrado (sem polimento/extra). */
   servicoValorBase?: number;
@@ -164,11 +165,14 @@ export async function adicionarNaFila(params: {
 }): Promise<FilaLavagemItem> {
   const nome = params.nomeProprietario.trim();
   const whatsapp = normalizarWhatsapp(params.whatsapp);
-  const modeloLabel = MODELO_FILA_LABELS[params.modelo];
+  const nomeCarro = params.nomeCarro.trim();
 
-  if (!nome) throw new Error("Informe o nome do proprietário.");
+  if (!nome) throw new Error("Informe o nome do cliente.");
   if (whatsapp.length < 10) throw new Error("Informe um WhatsApp válido.");
-  if (!modeloLabel) throw new Error("Selecione o modelo do veículo.");
+  if (!nomeCarro) throw new Error("Informe o nome do carro.");
+  if (!params.servicoNome.trim()) {
+    throw new Error("Selecione ao menos um tipo de serviço.");
+  }
 
   const agora = new Date().toISOString();
   const servicoNome = montarDescricaoServicoFila({
@@ -184,9 +188,10 @@ export async function adicionarNaFila(params: {
     params.servicoValorBase ?? params.servicoValor - extraValor
   );
 
+  // `placa` guarda o nome do carro para exibir na fila operacional
   const payloadBase = {
     cliente_veiculo_id: null as string | null,
-    placa: modeloLabel.toUpperCase(),
+    placa: nomeCarro.slice(0, 40),
     nome_proprietario: nome,
     whatsapp,
     servico_lavagem_id: params.servicoLavagemId || null,
@@ -342,8 +347,9 @@ export async function finalizarItemFila(id: string): Promise<{
     diaId: dia.id,
     tipo: "lavagem",
     polimento: temPolimento,
-    placa: item.placa,
-    modelo: item.nome_proprietario,
+    // Relatório mostra só o tipo de serviço (Hatch, SUV…), sem o nome do carro
+    placa: undefined,
+    modelo: undefined,
     descricao: `Fila · ${item.nome_proprietario}`,
     servicoLavagemId: item.servico_lavagem_id ?? undefined,
     nomeServico: item.servico_nome,

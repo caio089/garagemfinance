@@ -87,65 +87,81 @@ export function FilaPageContent() {
   const [aba, setAba] = useState<AbaFila>("lavando");
   const [mostrarCadastro, setMostrarCadastro] = useState(false);
 
-  const [modelo, setModelo] = useState<ModeloFila | null>(null);
+  /** Tipos Hatch/Sedan/SUV/Caminhonete selecionados */
+  const [modelosSelecionados, setModelosSelecionados] = useState<ModeloFila[]>(
+    []
+  );
+  /** Serviços adicionais cadastrados (além de hatch/suv…) */
+  const [servicoExtraIds, setServicoExtraIds] = useState<string[]>([]);
   const [nome, setNome] = useState("");
   const [whatsapp, setWhatsapp] = useState("");
-  const [servicoIds, setServicoIds] = useState<string[]>([]);
+  const [nomeCarro, setNomeCarro] = useState("");
   const [polimento, setPolimento] = useState(false);
   const [servicoExtraInput, setServicoExtraInput] = useState("");
   const [descricaoExtra, setDescricaoExtra] = useState("");
 
-  const servicosSelecionados = useMemo(
-    () => servicos.filter((s) => servicoIds.includes(s.id)),
-    [servicos, servicoIds]
+  const servicosAdicionais = useMemo(
+    () => servicos.filter((s) => !isServicoDeModelo(s)),
+    [servicos]
   );
 
-  const valorServicos = useMemo(
-    () => servicosSelecionados.reduce((sum, s) => sum + Number(s.valor), 0),
-    [servicosSelecionados]
+  const servicosAdicionaisSelecionados = useMemo(
+    () => servicosAdicionais.filter((s) => servicoExtraIds.includes(s.id)),
+    [servicosAdicionais, servicoExtraIds]
   );
 
-  const valorModeloFallback = useMemo(() => {
-    if (!modelo) return 0;
-    const match = encontrarServicoPorModelo(servicosSelecionados, modelo);
-    if (match) return 0;
-    return precosModelo[modelo] ?? 0;
-  }, [modelo, servicosSelecionados, precosModelo]);
+  const valorModelos = useMemo(() => {
+    return modelosSelecionados.reduce((sum, modelo) => {
+      const match = encontrarServicoPorModelo(servicos, modelo);
+      return sum + (match ? Number(match.valor) : precosModelo[modelo] ?? 0);
+    }, 0);
+  }, [modelosSelecionados, servicos, precosModelo]);
 
-  const valorBaseServicos = valorServicos + valorModeloFallback;
+  const valorAdicionais = useMemo(
+    () =>
+      servicosAdicionaisSelecionados.reduce(
+        (sum, s) => sum + Number(s.valor),
+        0
+      ),
+    [servicosAdicionaisSelecionados]
+  );
+
+  const valorBaseServicos = valorModelos + valorAdicionais;
 
   const nomesServicos = useMemo(() => {
-    const partes = servicosSelecionados.map((s) => s.nome);
-    if (modelo && valorModeloFallback > 0) {
-      partes.unshift(MODELO_FILA_LABELS[modelo]);
-    }
-    return partes.join(" + ") || (modelo ? MODELO_FILA_LABELS[modelo] : "—");
-  }, [servicosSelecionados, modelo, valorModeloFallback]);
+    const partes = [
+      ...modelosSelecionados.map((m) => MODELO_FILA_LABELS[m]),
+      ...servicosAdicionaisSelecionados.map((s) => s.nome),
+    ];
+    return partes.join(" + ") || "—";
+  }, [modelosSelecionados, servicosAdicionaisSelecionados]);
 
-  const alternarServico = (id: string) => {
-    setServicoIds((atual) =>
-      atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]
+  const servicoLavagemIdPrincipal = useMemo(() => {
+    for (const modelo of modelosSelecionados) {
+      const match = encontrarServicoPorModelo(servicos, modelo);
+      if (match) return match.id;
+    }
+    return servicosAdicionaisSelecionados[0]?.id ?? null;
+  }, [modelosSelecionados, servicos, servicosAdicionaisSelecionados]);
+
+  const alternarModelo = (modelo: ModeloFila) => {
+    setModelosSelecionados((atual) =>
+      atual.includes(modelo)
+        ? atual.filter((m) => m !== modelo)
+        : [...atual, modelo]
     );
   };
 
-  const selecionarModelo = (valor: ModeloFila) => {
-    setModelo(valor);
-    const match = encontrarServicoPorModelo(servicos, valor);
-    if (!match) return;
-
-    setServicoIds((atual) => {
-      const extras = atual.filter((id) => {
-        const s = servicos.find((x) => x.id === id);
-        return s ? !isServicoDeModelo(s) : false;
-      });
-      return [match.id, ...extras];
-    });
+  const alternarServicoExtra = (id: string) => {
+    setServicoExtraIds((atual) =>
+      atual.includes(id) ? atual.filter((x) => x !== id) : [...atual, id]
+    );
   };
 
   const servicoExtra = parseCurrencyInput(servicoExtraInput);
 
   const { total: valorTotal } = useMemo(() => {
-    if (!modelo && servicosSelecionados.length === 0) {
+    if (modelosSelecionados.length === 0 && valorAdicionais === 0) {
       return { base: 0, total: 0, extra: 0 };
     }
     return calcularValorLavagem(
@@ -156,8 +172,8 @@ export function FilaPageContent() {
       servicoExtra
     );
   }, [
-    modelo,
-    servicosSelecionados.length,
+    modelosSelecionados.length,
+    valorAdicionais,
     valorBaseServicos,
     polimento,
     precoPolimento,
@@ -207,30 +223,31 @@ export function FilaPageContent() {
   }, [carregarBase]);
 
   const limparFormulario = () => {
-    setModelo(null);
+    setModelosSelecionados([]);
+    setServicoExtraIds([]);
     setNome("");
     setWhatsapp("");
-    setServicoIds([]);
+    setNomeCarro("");
     setPolimento(false);
     setServicoExtraInput("");
     setDescricaoExtra("");
   };
 
   const handleSubmit = async () => {
-    if (!modelo) {
-      toast.error("Selecione o modelo do veículo.");
+    if (modelosSelecionados.length === 0 && servicosAdicionaisSelecionados.length === 0) {
+      toast.error("Selecione ao menos um tipo de serviço (Hatch, Sedan…).");
       return;
     }
     if (!nome.trim()) {
-      toast.error("Informe o nome do proprietário.");
+      toast.error("Informe o nome do cliente.");
       return;
     }
     if (whatsapp.replace(/\D/g, "").length < 10) {
       toast.error("Informe um WhatsApp válido.");
       return;
     }
-    if (servicosSelecionados.length === 0 && valorModeloFallback <= 0) {
-      toast.error("Selecione ao menos um tipo de serviço.");
+    if (!nomeCarro.trim()) {
+      toast.error("Informe o nome do carro.");
       return;
     }
     if (servicoExtra > 0 && !descricaoExtra.trim()) {
@@ -241,10 +258,10 @@ export function FilaPageContent() {
     setSalvando(true);
     try {
       await adicionarNaFila({
-        modelo,
+        nomeCarro,
         nomeProprietario: nome,
         whatsapp,
-        servicoLavagemId: servicosSelecionados[0]?.id ?? null,
+        servicoLavagemId: servicoLavagemIdPrincipal,
         servicoNome: nomesServicos,
         servicoValorBase: valorBaseServicos,
         servicoValor: valorTotal,
@@ -394,9 +411,7 @@ export function FilaPageContent() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-lg font-bold tracking-wider text-white">
-                      {item.placa}
-                    </p>
+                    <p className="text-lg font-bold text-white">{item.placa}</p>
                     <p className="truncate text-sm text-zinc-300">
                       {item.nome_proprietario}
                     </p>
@@ -449,9 +464,7 @@ export function FilaPageContent() {
               >
                 <div className="flex items-start justify-between gap-3">
                   <div className="min-w-0">
-                    <p className="text-lg font-bold tracking-wider text-white">
-                      {item.placa}
-                    </p>
+                    <p className="text-lg font-bold text-white">{item.placa}</p>
                     <p className="truncate text-sm text-zinc-300">
                       {item.nome_proprietario}
                     </p>
@@ -518,7 +531,7 @@ export function FilaPageContent() {
                     Cadastrar carro
                   </h2>
                   <p className="text-xs text-zinc-500">
-                    Escolha o modelo · valores somam no total
+                    Serviço + dados do cliente · nome do carro na fila
                   </p>
                 </div>
                 <button
@@ -533,10 +546,15 @@ export function FilaPageContent() {
 
               <div className="space-y-4">
                 <div className="space-y-2">
-                  <Label className="text-zinc-400">Modelo do veículo</Label>
+                  <Label className="text-zinc-400">
+                    Tipo de serviço{" "}
+                    <span className="font-normal text-zinc-500">
+                      (pode marcar mais de um)
+                    </span>
+                  </Label>
                   <div className="grid grid-cols-2 gap-2">
                     {MODELO_FILA_OPCOES.map((op) => {
-                      const ativo = modelo === op.value;
+                      const ativo = modelosSelecionados.includes(op.value);
                       const preco =
                         encontrarServicoPorModelo(servicos, op.value)?.valor ??
                         precosModelo[op.value];
@@ -544,7 +562,7 @@ export function FilaPageContent() {
                         <button
                           key={op.value}
                           type="button"
-                          onClick={() => selecionarModelo(op.value)}
+                          onClick={() => alternarModelo(op.value)}
                           className={cn(
                             "flex min-h-[4.5rem] flex-col items-center justify-center gap-1 rounded-xl border-2 px-3 py-3 transition-all",
                             ativo
@@ -552,12 +570,6 @@ export function FilaPageContent() {
                               : "border-zinc-800 bg-zinc-900"
                           )}
                         >
-                          <Car
-                            className={cn(
-                              "h-4 w-4",
-                              ativo ? "text-amber-300" : "text-zinc-500"
-                            )}
-                          />
                           <span
                             className={cn(
                               "text-sm font-bold",
@@ -575,61 +587,22 @@ export function FilaPageContent() {
                   </div>
                 </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="nome-fila" className="text-zinc-400">
-                    Nome do proprietário
-                  </Label>
-                  <div className="relative">
-                    <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                    <input
-                      id="nome-fila"
-                      type="text"
-                      placeholder="Nome completo"
-                      value={nome}
-                      onChange={(e) => setNome(e.target.value)}
-                      className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 pl-10 pr-4 text-base text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
-                    />
-                  </div>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="whats-fila" className="text-zinc-400">
-                    WhatsApp
-                  </Label>
-                  <div className="relative">
-                    <Phone className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
-                    <input
-                      id="whats-fila"
-                      type="tel"
-                      inputMode="numeric"
-                      placeholder="(00) 00000-0000"
-                      value={whatsapp}
-                      onChange={(e) =>
-                        setWhatsapp(formatarWhatsappInput(e.target.value))
-                      }
-                      className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 pl-10 pr-4 text-base text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
-                    />
-                  </div>
-                </div>
-
-                {servicos.filter((s) => !isServicoDeModelo(s)).length > 0 && (
+                {servicosAdicionais.length > 0 && (
                   <div className="space-y-2">
                     <Label className="text-zinc-400">
-                      Serviços extras{" "}
+                      Serviços adicionais{" "}
                       <span className="font-normal text-zinc-500">
-                        (opcional · pode marcar mais de um)
+                        (opcional)
                       </span>
                     </Label>
                     <div className="space-y-2">
-                      {servicos
-                        .filter((s) => !isServicoDeModelo(s))
-                        .map((servico) => {
-                        const ativo = servicoIds.includes(servico.id);
+                      {servicosAdicionais.map((servico) => {
+                        const ativo = servicoExtraIds.includes(servico.id);
                         return (
                           <button
                             key={servico.id}
                             type="button"
-                            onClick={() => alternarServico(servico.id)}
+                            onClick={() => alternarServicoExtra(servico.id)}
                             className={cn(
                               "flex min-h-12 w-full items-center justify-between rounded-xl border-2 px-4 py-3 transition-all",
                               ativo
@@ -723,6 +696,60 @@ export function FilaPageContent() {
                   </div>
                 </div>
 
+                <div className="space-y-2">
+                  <Label htmlFor="nome-fila" className="text-zinc-400">
+                    Nome do cliente
+                  </Label>
+                  <div className="relative">
+                    <User className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                    <input
+                      id="nome-fila"
+                      type="text"
+                      placeholder="Nome completo"
+                      value={nome}
+                      onChange={(e) => setNome(e.target.value)}
+                      className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 pl-10 pr-4 text-base text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="whats-fila" className="text-zinc-400">
+                    Número do cliente (WhatsApp)
+                  </Label>
+                  <div className="relative">
+                    <Phone className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                    <input
+                      id="whats-fila"
+                      type="tel"
+                      inputMode="numeric"
+                      placeholder="(00) 00000-0000"
+                      value={whatsapp}
+                      onChange={(e) =>
+                        setWhatsapp(formatarWhatsappInput(e.target.value))
+                      }
+                      className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 pl-10 pr-4 text-base text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+                    />
+                  </div>
+                </div>
+
+                <div className="space-y-2">
+                  <Label htmlFor="carro-fila" className="text-zinc-400">
+                    Nome do carro
+                  </Label>
+                  <div className="relative">
+                    <Car className="pointer-events-none absolute left-3.5 top-1/2 h-4 w-4 -translate-y-1/2 text-zinc-500" />
+                    <input
+                      id="carro-fila"
+                      type="text"
+                      placeholder="Ex: Gol, Onix, Civic, Hilux"
+                      value={nomeCarro}
+                      onChange={(e) => setNomeCarro(e.target.value)}
+                      className="h-12 w-full rounded-xl border border-zinc-700 bg-zinc-900 pl-10 pr-4 text-base text-white placeholder:text-zinc-600 focus:border-amber-400 focus:outline-none focus:ring-2 focus:ring-amber-400/20"
+                    />
+                  </div>
+                </div>
+
                 <div className="rounded-xl border border-amber-400/20 bg-amber-400/10 p-4 text-center">
                   <p className="text-sm text-zinc-400">Total do serviço</p>
                   <p className="mt-1 text-2xl font-bold text-amber-300">
@@ -740,7 +767,11 @@ export function FilaPageContent() {
                 <Button
                   type="button"
                   onClick={handleSubmit}
-                  disabled={salvando || !modelo}
+                  disabled={
+                    salvando ||
+                    (modelosSelecionados.length === 0 &&
+                      servicosAdicionaisSelecionados.length === 0)
+                  }
                   className="h-12 w-full rounded-xl bg-amber-400 text-base font-bold text-black hover:bg-amber-300"
                 >
                   {salvando ? "Salvando..." : "Adicionar à lavagem"}
