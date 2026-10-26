@@ -7,14 +7,14 @@ export const MODELO_FILA_OPCOES: { value: ModeloFila; label: string }[] = [
   { value: "hatch", label: "Hatch" },
   { value: "sedan", label: "Sedan" },
   { value: "suv", label: "SUV" },
-  { value: "camionete", label: "Caminhonete" },
+  { value: "camionete", label: "Caminhonete (CS)" },
 ];
 
 export const MODELO_FILA_LABELS: Record<ModeloFila, string> = {
   hatch: "Hatch",
   sedan: "Sedan",
   suv: "SUV",
-  camionete: "Caminhonete",
+  camionete: "Caminhonete (CS)",
 };
 
 export function normalizarPlaca(placa: string): string {

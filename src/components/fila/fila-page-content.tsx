@@ -54,7 +54,15 @@ function encontrarServicoPorModelo(
     hatch: ["hatch"],
     sedan: ["sedan"],
     suv: ["suv"],
-    camionete: ["camionete", "caminhonete", "pickup"],
+    camionete: [
+      "camionete",
+      "caminhonete",
+      "caminhonete (cs)",
+      "strada",
+      "saveiro",
+      "cabine simples",
+      "pickup",
+    ],
   };
   const termos = aliases[modelo];
   return (
@@ -87,7 +95,7 @@ export function FilaPageContent() {
   const [aba, setAba] = useState<AbaFila>("lavando");
   const [mostrarCadastro, setMostrarCadastro] = useState(false);
 
-  /** Tipos Hatch/Sedan/SUV/Caminhonete selecionados */
+  /** Tipos Hatch/Sedan/SUV/Caminhonete (CS) selecionados */
   const [modelosSelecionados, setModelosSelecionados] = useState<ModeloFila[]>(
     []
   );

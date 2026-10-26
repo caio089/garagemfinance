@@ -1,8 +1,29 @@
 import { getSupabase } from "@/lib/supabase";
 import type { ServicoLavagem } from "@/types";
 
+const NOMES_CAMINHONETE_CS = new Set([
+  "camionete medio porte (strada/saveiro) cabine simples",
+  "caminhonete medio porte (strada/saveiro) cabine simples",
+]);
+
+/** Mantém o nome do serviço consistente nos cadastros antigos e novos. */
+export function normalizarNomeServicoLavagem(nome: string): string {
+  const nomeLimpo = nome.trim();
+  const chave = nomeLimpo
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "")
+    .trim()
+    .toLowerCase();
+
+  return NOMES_CAMINHONETE_CS.has(chave) ? "Caminhonete (CS)" : nomeLimpo;
+}
+
 function mapServico(row: ServicoLavagem): ServicoLavagem {
-  return { ...row, valor: Number(row.valor) };
+  return {
+    ...row,
+    nome: normalizarNomeServicoLavagem(row.nome),
+    valor: Number(row.valor),
+  };
 }
 
 export async function listarServicosLavagem(
@@ -26,7 +47,7 @@ export async function criarServicoLavagem(params: {
   nome: string;
   valor: number;
 }): Promise<ServicoLavagem> {
-  const nome = params.nome.trim();
+  const nome = normalizarNomeServicoLavagem(params.nome);
   if (!nome) throw new Error("Informe o nome do serviço.");
   if (params.valor < 0) throw new Error("Valor inválido.");
 
@@ -54,7 +75,7 @@ export async function atualizarServicoLavagem(
 ): Promise<ServicoLavagem> {
   const payload: Record<string, unknown> = {};
   if (params.nome !== undefined) {
-    const nome = params.nome.trim();
+    const nome = normalizarNomeServicoLavagem(params.nome);
     if (!nome) throw new Error("Informe o nome do serviço.");
     payload.nome = nome;
   }
