@@ -514,7 +514,7 @@ export function FilaPageContent() {
             initial={{ opacity: 0 }}
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
+            className="fixed inset-0 z-[60] flex items-end justify-center bg-black/70 p-0 sm:items-center sm:p-4"
             onClick={() => setMostrarCadastro(false)}
           >
             <motion.div
@@ -774,7 +774,7 @@ export function FilaPageContent() {
                   }
                   className="h-12 w-full rounded-xl bg-amber-400 text-base font-bold text-black hover:bg-amber-300"
                 >
-                  {salvando ? "Salvando..." : "Adicionar à lavagem"}
+                  {salvando ? "Salvando..." : "Confirmar na fila"}
                 </Button>
               </div>
             </motion.div>
