@@ -494,7 +494,7 @@ export function FilaPageContent() {
                     className="inline-flex flex-1 items-center justify-center gap-2 rounded-xl bg-[#25D366] px-4 py-3 text-sm font-bold text-white hover:bg-[#1ebe57]"
                   >
                     <MessageCircle className="h-4 w-4" />
-                    Enviar mensagem
+                    Abrir WhatsApp
                   </a>
                   <button
                     type="button"

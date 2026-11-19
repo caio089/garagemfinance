@@ -241,6 +241,14 @@ export interface ClienteVeiculo {
   updated_at: string;
 }
 
+export interface Cliente {
+  id: string;
+  nome: string;
+  whatsapp: string;
+  created_at: string;
+  updated_at: string;
+}
+
 export interface FilaLavagemItem {
   id: string;
   cliente_veiculo_id: string | null;

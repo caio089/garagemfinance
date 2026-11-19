@@ -1,4 +1,5 @@
 import { getSupabase } from "@/lib/supabase";
+import { salvarCliente } from "@/services/clientes.service";
 import type { ClienteVeiculo, FilaLavagemItem, FilaLavagemStatus } from "@/types";
 
 export type ModeloFila = "hatch" | "sedan" | "suv" | "camionete";
@@ -210,9 +211,11 @@ export async function adicionarNaFila(params: {
       extraValor > 0 ? params.servicoExtraDescricao?.trim() || null : null,
   };
 
+  const cliente = await salvarCliente({ nome, whatsapp });
+
   let insertResult = await getSupabase()
     .from("fila_lavagem")
-    .insert(payloadCompleto)
+    .insert({ ...payloadCompleto, cliente_id: cliente.id })
     .select()
     .single();
 
@@ -260,19 +263,11 @@ export async function listarFilaFinalizadosHoje(): Promise<FilaLavagemItem[]> {
   return (data ?? []).map(mapFila);
 }
 
-/** Link do WhatsApp com mensagem pronta: carro liberado. */
+/** Abre a conversa no WhatsApp sem mensagem pré-preenchida. */
 export function linkWhatsappCarroPronto(item: FilaLavagemItem): string {
   const digitos = normalizarWhatsapp(item.whatsapp);
   const telefone = digitos.startsWith("55") ? digitos : `55${digitos}`;
-  const mensagem = [
-    `Olá, ${item.nome_proprietario}!`,
-    "",
-    `Seu veículo *${item.placa}* (${item.servico_nome}) já está pronto para retirada.`,
-    "",
-    "Garagem Federal — obrigado pela preferência!",
-  ].join("\n");
-
-  return `https://wa.me/${telefone}?text=${encodeURIComponent(mensagem)}`;
+  return `https://wa.me/${telefone}`;
 }
 
 export async function atualizarStatusFila(
