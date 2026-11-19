@@ -1,0 +1,10 @@
+{
+  "name": "Garagem Finance",
+  "short_name": "Garagem",
+  "description": "Controle financeiro do lava-jato",
+  "start_url": "/",
+  "display": "standalone",
+  "background_color": "#09090b",
+  "theme_color": "#09090b",
+  "orientation": "portrait"
+}
