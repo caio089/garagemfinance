@@ -211,11 +211,22 @@ export async function adicionarNaFila(params: {
       extraValor > 0 ? params.servicoExtraDescricao?.trim() || null : null,
   };
 
-  const cliente = await salvarCliente({ nome, whatsapp });
+  // O cadastro de clientes é complementar à fila. Mantém o atendimento
+  // funcionando em bancos que ainda não receberam a migration de `clientes`.
+  let clienteId: string | null = null;
+  try {
+    const cliente = await salvarCliente({ nome, whatsapp });
+    clienteId = cliente.id;
+  } catch {
+    // A inserção abaixo continua compatível com a estrutura anterior da fila.
+  }
 
   let insertResult = await getSupabase()
     .from("fila_lavagem")
-    .insert({ ...payloadCompleto, cliente_id: cliente.id })
+    .insert({
+      ...payloadCompleto,
+      ...(clienteId ? { cliente_id: clienteId } : {}),
+    })
     .select()
     .single();
 
