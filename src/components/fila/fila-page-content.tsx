@@ -46,6 +46,17 @@ import type { FilaLavagemItem, ServicoLavagem } from "@/types";
 
 type AbaFila = "lavando" | "finalizados";
 
+function mensagemDoErro(error: unknown, fallback: string): string {
+  if (error instanceof Error) return error.message;
+
+  if (typeof error === "object" && error !== null && "message" in error) {
+    const mensagem = (error as { message?: unknown }).message;
+    if (typeof mensagem === "string" && mensagem.trim()) return mensagem;
+  }
+
+  return fallback;
+}
+
 function encontrarServicoPorModelo(
   lista: ServicoLavagem[],
   modelo: ModeloFila
@@ -214,8 +225,7 @@ export function FilaPageContent() {
         camionete: Number(precos.camionete) || 80,
       });
     } catch (err) {
-      const msg =
-        err instanceof Error ? err.message : "Erro ao carregar a fila.";
+      const msg = mensagemDoErro(err, "Erro ao carregar a fila.");
       toast.error(
         msg.includes("schema cache") || msg.includes("Could not find")
           ? "Tabelas da fila ainda não existem. Rode a migration 009 no Supabase."
@@ -284,9 +294,7 @@ export function FilaPageContent() {
       setAba("lavando");
       await carregarListas();
     } catch (err) {
-      toast.error(
-        err instanceof Error ? err.message : "Erro ao adicionar na fila."
-      );
+      toast.error(mensagemDoErro(err, "Erro ao adicionar na fila."));
     } finally {
       setSalvando(false);
     }
